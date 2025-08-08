@@ -1,9 +1,9 @@
 // src/routes/authRoutes.js
 const express = require("express");
 const { register, login, getProfile, editProfile, changePassword, sendResetLink, resetPassword } = require("../controllers/authController");
-const upload = require("../config/multer");
 const { authenticateToken } = require("../middleware/authMiddleware");
-
+const createMulterUpload = require("../config/multer");
+const upload = createMulterUpload("profiles");
 
 const router = express.Router();
 

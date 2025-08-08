@@ -209,21 +209,20 @@ const sendResetLink = async (req, res) => {
 const resetPassword = async (req, res) => {
     try {
         const { newPassword, confirmPassword } = req.body;
-        const resetToken = req.params.token;
+        const { token } = req.params; // same as req.params.token
 
-        // Validate fields
+        // 1. Validate input
         if (!newPassword || !confirmPassword) {
             return res.status(400).json({ status: false, message: "All fields are required" });
         }
-
         if (newPassword !== confirmPassword) {
             return res.status(400).json({ status: false, message: "Passwords do not match" });
         }
 
-        // Hash token to match stored one
-        const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+        // 2. Hash token (same method as when storing in forgot password)
+        const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
-        // Find user with matching token & not expired
+        // 3. Find user with valid token
         const user = await User.findOne({
             resetPasswordToken: hashedToken,
             resetPasswordExpires: { $gt: Date.now() }
@@ -233,14 +232,18 @@ const resetPassword = async (req, res) => {
             return res.status(400).json({ status: false, message: "Token is invalid or expired" });
         }
 
-        // Update password and clear token
-        user.password = await bcrypt.hash(newPassword, 10);
+        // 4. Update password and clear reset fields
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(newPassword, salt);
         user.resetPasswordToken = undefined;
         user.resetPasswordExpires = undefined;
+
         await user.save();
 
         return res.json({ status: true, message: "Password has been reset successfully" });
+
     } catch (err) {
+        console.error("Reset Password Error:", err);
         return res.status(500).json({ status: false, message: "Internal server error" });
     }
 };
