@@ -14,9 +14,11 @@ app.use(cors(
 ));
 
 // Load environment variables
-app.use("/uploads/profiles", express.static(path.join(__dirname, "uploads/profiles")));
-app.use("/uploads/cities", express.static(path.join(__dirname, "uploads/cities")));
-app.use("/uploads/amenities", express.static(path.join(__dirname, "uploads/amenities")));
+app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
+// app.use("/uploads/profiles", express.static(path.join(__dirname, "uploads/profiles")));
+// app.use("/uploads/cities", express.static(path.join(__dirname, "uploads/cities")));
+// app.use("/uploads/amenities", express.static(path.join(__dirname, "uploads/amenities")));
+// app.use("/uploads/logo", express.static(path.join(__dirname, "uploads/logo")));
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

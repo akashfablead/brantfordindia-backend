@@ -67,6 +67,21 @@ const getBlogCategoriesWithoutToken = async (req, res) => {
     }
 };
 
+// Get Only Active Blog Categories
+const getActiveBlogCategories = async (req, res) => {
+    try {
+        const blogCategories = await BlogCategory.find({ status: "active" }).sort({ createdAt: -1 });
+        res.status(200).json({
+            message: "Active Blog Categories fetched successfully",
+            status: true,
+            blogCategories
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message, status: false });
+    }
+};
+
+
 // Get Blog Category by ID
 const getBlogCategoryById = async (req, res) => {
     try {
@@ -98,6 +113,7 @@ module.exports = {
     editBlogCategory,
     getBlogCategories,
     getBlogCategoriesWithoutToken,
+    getActiveBlogCategories,
     getBlogCategoryById,
     deleteBlogCategory
 };

@@ -67,6 +67,21 @@ const getBlogTagsWithoutToken = async (req, res) => {
     }
 };
 
+// Get Only Active Blog Tags
+const getActiveBlogTags = async (req, res) => {
+    try {
+        const blogTags = await BlogTag.find({ status: "active" }).sort({ createdAt: -1 });
+        res.status(200).json({
+            message: "Active Blog Tags fetched successfully",
+            success: true,
+            blogTags
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message, success: false });
+    }
+};
+
+
 // Get Blog Tag by ID
 const getBlogTagById = async (req, res) => {
     try {
@@ -98,6 +113,7 @@ module.exports = {
     editBlogTag,
     getBlogTags,
     getBlogTagsWithoutToken,
+    getActiveBlogTags,
     getBlogTagById,
     deleteBlogTag
 };

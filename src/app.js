@@ -15,6 +15,14 @@ const jobCategoryRoutes = require("./routes/masterroutes/jobCategoryRoutes");
 const roleRoutes = require("./routes/masterroutes/roleRoutes");
 const userRoutes = require("./routes/masterroutes/userRoutes");
 const adminuserRoutes = require("./routes/masterroutes/adminuserRoutes");
+const contactUsRoutes = require("./routes/masterroutes/contactUsRoutes");
+const termsRoutes = require("./routes/masterroutes/termsRoutes");
+const logoRoutes = require("./routes/masterroutes/logoRoutes");
+const clientSliderRoutes = require("./routes/masterroutes/clientSliderRoutes");
+const faqRoutes = require("./routes/faqRoutes");
+const blogRoutes = require("./routes/blogRoutes");
+const advertiseRoutes = require("./routes/advertiseRoutes");
+const jobpostsRoutes = require("./routes/jobpostsRoutes");
 
 app.use("/api/auth", authRoutes);
 
@@ -32,8 +40,25 @@ app.use("/api/jobcategories", jobCategoryRoutes);
 app.use("/api/roles", roleRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/adminusers", adminuserRoutes);
+app.use("/api/contactus", contactUsRoutes);
+app.use("/api/terms", termsRoutes);
+app.use("/api/logo", logoRoutes);
+app.use("/api/clientsliders", clientSliderRoutes);
 
+// FAQ page routes
+app.use("/api/faq", faqRoutes);
 
+// blog page 
+app.use("/api/blog", blogRoutes);
+
+// Advertise routes
+app.use("/api/advertises", advertiseRoutes);
+
+// Job Post routes
+app.use("/api/jobposts", jobpostsRoutes);
+
+// fake route for testing
+app.get("/", (req, res) => res.send("Hello World!"));
 
 
 module.exports = app;
