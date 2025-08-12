@@ -1,10 +1,16 @@
 const JobPost = require("../models/JobPost");
 
-
+// Add Job Post
 // Add Job Post
 const addJobPost = async (req, res) => {
     try {
         const { jobCategory, city, name, description, type, status } = req.body;
+
+        // Duplicate name check (case-insensitive)
+        const existingPost = await JobPost.findOne({ name: { $regex: `^${name}$`, $options: "i" } });
+        if (existingPost) {
+            return res.status(400).json({ success: false, message: "Job post with this name already exists" });
+        }
 
         const jobPost = await JobPost.create({
             jobCategory,
@@ -25,9 +31,20 @@ const addJobPost = async (req, res) => {
 const editJobPost = async (req, res) => {
     try {
         const { id } = req.params;
-        const updateData = req.body;
+        const { name } = req.body;
 
-        const jobPost = await JobPost.findByIdAndUpdate(id, updateData, { new: true });
+        // Duplicate name check (ignore same ID)
+        if (name) {
+            const existingPost = await JobPost.findOne({
+                _id: { $ne: id },
+                name: { $regex: `^${name}$`, $options: "i" }
+            });
+            if (existingPost) {
+                return res.status(400).json({ success: false, message: "Job post with this name already exists" });
+            }
+        }
+
+        const jobPost = await JobPost.findByIdAndUpdate(id, req.body, { new: true });
         if (!jobPost) return res.status(404).json({ success: false, message: "Job post not found" });
 
         res.status(200).json({ success: true, message: "Job post updated successfully", jobPost });

@@ -23,6 +23,12 @@ const faqRoutes = require("./routes/faqRoutes");
 const blogRoutes = require("./routes/blogRoutes");
 const advertiseRoutes = require("./routes/advertiseRoutes");
 const jobpostsRoutes = require("./routes/jobpostsRoutes");
+const testimonialRoutes = require("./routes/testimonialRoutes");
+const footerLinksRoutes = require("./routes/footerLinksRoutes");
+const footerLinksMicroMarketRoutes = require("./routes/footerLinksMicroMarketRoutes");
+const footerLinkFaqRoutes = require("./routes/footerLinkFaqRoutes");
+const footerLinkMicroMarketFaqRoutes = require("./routes/footerLinkMicroMarketFaqRoutes");
+const generalSettingsRoutes = require("./routes/generalSettingsRoutes");
 
 app.use("/api/auth", authRoutes);
 
@@ -57,8 +63,28 @@ app.use("/api/advertises", advertiseRoutes);
 // Job Post routes
 app.use("/api/jobposts", jobpostsRoutes);
 
+// Testimonial routes
+app.use("/api/testimonials", testimonialRoutes);
+
+// footerlinks routes
+app.use("/api/footerlinks", footerLinksRoutes);
+
+// footerlinks micro market routes
+app.use("/api/footer-links-micro-market", footerLinksMicroMarketRoutes);
+
+// footerlinks micro market routes
+app.use("/api/footer-link-faqs", footerLinkFaqRoutes);
+
+// footerlinks micro market routes
+app.use("/api/footer-link-micro-market-faqs", footerLinkMicroMarketFaqRoutes);
+
+// general settings routes
+app.use("/api/generalsettings", generalSettingsRoutes);
+
+
 // fake route for testing
 app.get("/", (req, res) => res.send("Hello World!"));
+
 
 
 module.exports = app;
