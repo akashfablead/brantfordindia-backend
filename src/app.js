@@ -29,7 +29,9 @@ const footerLinksMicroMarketRoutes = require("./routes/footerLinksMicroMarketRou
 const footerLinkFaqRoutes = require("./routes/footerLinkFaqRoutes");
 const footerLinkMicroMarketFaqRoutes = require("./routes/footerLinkMicroMarketFaqRoutes");
 const generalSettingsRoutes = require("./routes/generalSettingsRoutes");
+const propertyRoutes = require("./routes/PropertyRoutes");
 
+// Authentication routes
 app.use("/api/auth", authRoutes);
 
 // Master admin routes
@@ -80,6 +82,9 @@ app.use("/api/footer-link-micro-market-faqs", footerLinkMicroMarketFaqRoutes);
 
 // general settings routes
 app.use("/api/generalsettings", generalSettingsRoutes);
+
+
+app.use("/api/properties", propertyRoutes);
 
 
 // fake route for testing
