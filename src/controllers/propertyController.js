@@ -1,6 +1,9 @@
 const slugify = require("slugify");
 const Property = require("../models/Property");
 const { default: mongoose } = require("mongoose");
+const PropertyType = require("../models/Master/PropertyType");
+const City = require("../models/Master/City");
+const Micromarket = require("../models/Master/Micromarket");
 
 // 📌 Helper to build full URL
 // const getFullUrl = (req, filePath) => {
@@ -111,17 +114,39 @@ const addProperty = async (req, res) => {
             openToBrokers, openToNegotiation, minimumLockInMonths,
             minimumLicenseMonths, description, videoUrl
         } = req.body;
-
         const slug = slugify(title, { lower: true, strict: true });
 
-        // ✅ Check if slug already exists
+        // ✅ Check if title slug already exists
         const existingProperty = await Property.findOne({ slug });
         if (existingProperty) {
             return res.status(400).json({
                 status: false,
-                message: `A property with title "${title}" already exists. Please choose a different title.   `
+                message: `A property with title "${title}" already exists. Please choose a different title.`
             });
         }
+
+        // ✅ Fetch PropertyType, City, and Micromarket docs
+        const propertyTypeDoc = await PropertyType.findById(propertyType);
+        const cityDoc = await City.findById(city);
+        const microMarketDoc = await Micromarket.findById(micromarket);
+
+        if (!propertyTypeDoc || !cityDoc) {
+            return res.status(400).json({ status: false, message: "Invalid PropertyType or City" });
+        }
+        if (!microMarketDoc) {
+            return res.status(400).json({ status: false, message: "Invalid Micromarket" });
+        }
+
+        // ✅ Create both slugs
+        const PropertyCitySlug = slugify(
+            `${propertyTypeDoc.name} of ${cityDoc.name}`,
+            { lower: true, strict: true }
+        );
+
+        const PropertyMicromarketSlug = slugify(
+            `${propertyTypeDoc.name} of ${microMarketDoc.name}`,
+            { lower: true, strict: true }
+        );
 
         // Parse arrays from the request body
         const connectivityArr = parseArrayFields(req.body, ["mode[]", "approxDistance[]"]);
@@ -134,6 +159,8 @@ const addProperty = async (req, res) => {
         const newProperty = new Property({
             title,
             slug,
+            PropertyCitySlug, // ✅ new slug stored in PropertyCitySlug
+            PropertyMicromarketSlug, // 👈 new micromarket slug here
             listingPropertyAs,
             propertyAvailableFor,
             listingType,
@@ -242,66 +269,6 @@ const editProperty = async (req, res) => {
     }
 };
 
-// 📌 Toggle Favourite
-const toggleFavourite = async (req, res) => {
-    try {
-        const userId = req.user._id; // ✅ get userId from auth token
-        const { propertyId } = req.body;
-
-        if (!propertyId) {
-            return res.status(400).json({ status: false, message: "Property ID is required" });
-        }
-
-        const property = await Property.findById(propertyId);
-        if (!property) return res.status(404).json({ status: false, message: "Property not found" });
-
-        // Check if user already exists in favourites
-        const favIndex = property.favourites.findIndex(f => f.userId.toString() === userId.toString());
-
-        if (favIndex > -1) {
-            // Toggle status (remove favourite)
-            property.favourites[favIndex].status = 1;
-            await property.save();
-            return res.json({ status: true, message: "Removed from favourites", action: 1 });
-        } else {
-            // Add new favourite
-            property.favourites.push({ userId, status: 0 });
-            await property.save();
-            return res.json({ status: true, message: "Added to favourites", action: 0 });
-        }
-
-    } catch (error) {
-        res.status(500).json({ status: false, message: error.message });
-    }
-};
-
-
-// Get Favourite Properties
-const getFavouriteProperties = async (req, res) => {
-    try {
-        const userId = req.user._id;
-
-        const properties = await Property.find({
-            "favourites": { $elemMatch: { userId, status: 0 } }
-        })
-            .populate("state city propertyType micromarket locality")
-            .populate("residentialUnitTypes.unitTypeid")
-            .populate({
-                path: "amenities.amenityid",
-                model: "Amenity"
-            })
-            .sort({ createdAt: -1 });
-
-        res.json({
-            status: true,
-            message: "Favourite properties fetched successfully",
-            properties
-        });
-
-    } catch (error) {
-        res.status(500).json({ status: false, message: error.message });
-    }
-};
 
 
 
@@ -377,11 +344,19 @@ const getRecentlyAddedOfficeSpaces = async (req, res) => {
     }
 };
 
-// 📌 Get Approved Properties
-const getApprovedProperties = async (req, res) => {
+// 📌 Get status Properties
+const getstatusProperties = async (req, res) => {
     try {
-        const filter = { status: "Approved" };
+        const filter = {};
 
+        // ✅ Apply status filter if provided, else default to Approved
+        if (req.query.status) {
+            filter.status = req.query.status;
+        } else {
+            filter.status = "Approved";
+        }
+
+        // ✅ Exclude properties created by the current user
         const userId = req.user?._id || req.user?.id || req.user?.userId;
         if (userId) {
             filter.createdBy = { $ne: new mongoose.Types.ObjectId(userId) };
@@ -390,7 +365,10 @@ const getApprovedProperties = async (req, res) => {
         const properties = await Property.find(filter)
             .populate("state city propertyType micromarket locality")
             .populate("residentialUnitTypes.unitTypeid")
-            .populate({ path: "amenities.amenityid", model: "Amenity" });
+            .populate({
+                path: "amenities.amenityid",
+                model: "Amenity"
+            });
 
         res.json({
             status: true,
@@ -402,9 +380,7 @@ const getApprovedProperties = async (req, res) => {
     }
 };
 
-
-// 📌 Get All Properties with Filters & Sorting and If logged in → exclude user's own properties
-
+// 📌 Get All Properties 
 const getAllPropertiesfilter = async (req, res) => {
     try {
         let {
@@ -417,7 +393,9 @@ const getAllPropertiesfilter = async (req, res) => {
             sortTitle // "AtoZ" | "ZtoA"
         } = req.query;
 
-        const filter = {};
+        const filter = {
+            status: "Approved" // Only show properties with status "Approved"
+        };
 
         // If logged in → exclude user's own properties
         const userId = req.user?._id || req.user?.id || req.user?.userId;
@@ -453,6 +431,7 @@ const getAllPropertiesfilter = async (req, res) => {
             if (sortPrice === "lowToHigh") sort.quotedAmountPerSeat = 1;
             if (sortPrice === "highToLow") sort.quotedAmountPerSeat = -1;
         }
+
         if (sortTitle) {
             if (sortTitle === "AtoZ") sort.title = 1;
             if (sortTitle === "ZtoA") sort.title = -1;
@@ -469,15 +448,8 @@ const getAllPropertiesfilter = async (req, res) => {
 
         properties = properties.map(p => formatAmenitiesWithFullUrl(req, p));
 
-        // ✅ Add `isFavourite` for logged-in user
-        if (userId) {
-            const favourites = await Favourite.find({ userId }).select("propertyId");
-            const favSet = new Set(favourites.map(f => f.propertyId.toString()));
-
-            properties = properties.map(p => ({
-                ...p.toObject(),
-                isFavourite: favSet.has(p._id.toString())
-            }));
+        if (properties.length === 0) {
+            return res.status(404).json({ status: false, message: "No properties found" });
         }
 
         res.json({ status: true, message: "Properties fetched successfully", properties });
@@ -485,6 +457,7 @@ const getAllPropertiesfilter = async (req, res) => {
         res.status(500).json({ status: false, message: error.message });
     }
 };
+
 
 
 // 📌 Get Property by Id
@@ -509,11 +482,11 @@ const getPropertyById = async (req, res) => {
     }
 };
 
-// 📌 Get Property by Slug
+// 📌 Get Property by Slug (only Approved)
 const getPropertyBySlug = async (req, res) => {
     try {
         const { slug } = req.params;
-        let property = await Property.findOne({ slug })
+        let property = await Property.findOne({ slug, status: "Approved" }) // ✅ Only approved
             .populate("state city propertyType micromarket locality")
             .populate("residentialUnitTypes.unitTypeid")
             .populate({
@@ -521,15 +494,131 @@ const getPropertyBySlug = async (req, res) => {
                 model: "Amenity"
             });
 
-        if (!property) return res.status(404).json({ status: false, message: "Property not found" });
+        if (!property) {
+            return res.status(404).json({
+                status: false,
+                message: "Property not found or not approved"
+            });
+        }
 
         property = formatAmenitiesWithFullUrl(req, property);
 
-        res.json({ status: true, property });
+        res.json({
+            status: true,
+            message: "Property fetched successfully",
+            property
+        });
     } catch (error) {
         res.status(500).json({ status: false, message: error.message });
     }
 };
+
+
+// 📌 Get properties by PropertyCitySlug
+const getPropertiesByCitySlug = async (req, res) => {
+    try {
+        const { slug } = req.params;
+
+        if (!slug) {
+            return res.status(400).json({
+                status: false,
+                message: "City slug is required",
+            });
+        }
+
+        const filter = {
+            PropertyCitySlug: slug,
+            status: "Approved", // Only approved listings
+        };
+
+        // Exclude current user's own listings if logged in
+        const userId = req.user?._id || req.user?.id || req.user?.userId;
+        if (userId) {
+            filter.createdBy = { $ne: new mongoose.Types.ObjectId(userId) };
+        }
+
+        let properties = await Property.find(filter)
+            .populate("state city propertyType micromarket locality")
+            .populate("residentialUnitTypes.unitTypeid")
+            .populate({
+                path: "amenities.amenityid",
+                model: "Amenity",
+            });
+
+        // Format amenities & images to full URL
+        properties = properties.map(p => formatAmenitiesWithFullUrl(req, p));
+
+        if (!properties.length) {
+            return res.status(200).json({
+                status: true,
+                message: "No properties found for this city slug",
+            });
+        }
+
+        res.status(200).json({
+            status: true,
+            message: "Properties fetched successfully",
+            properties,
+        });
+    } catch (error) {
+        console.error("Error in getPropertiesByCitySlug:", error);
+        res.status(500).json({ status: false, message: error.message });
+    }
+};
+
+// 📌 Get properties by PropertyMicromarketSlug
+const getPropertiesByMicromarketSlug = async (req, res) => {
+    try {
+        const { slug } = req.params;
+
+        if (!slug) {
+            return res.status(400).json({
+                status: false,
+                message: "Micromarket slug is required",
+            });
+        }
+
+        const filter = {
+            PropertyMicromarketSlug: slug,
+            status: "Approved", // ✅ Only approved listings
+        };
+
+        // Exclude current user's own listings if logged in
+        const userId = req.user?._id || req.user?.id || req.user?.userId;
+        if (userId) {
+            filter.createdBy = { $ne: new mongoose.Types.ObjectId(userId) };
+        }
+
+        let properties = await Property.find(filter)
+            .populate("state city propertyType micromarket locality")
+            .populate("residentialUnitTypes.unitTypeid")
+            .populate({
+                path: "amenities.amenityid",
+                model: "Amenity",
+            });
+
+        // Format amenities & images to full URL
+        properties = properties.map(p => formatAmenitiesWithFullUrl(req, p));
+
+        if (!properties.length) {
+            return res.status(200).json({
+                status: true,
+                message: "No properties found for this micromarket slug",
+            });
+        }
+
+        res.status(200).json({
+            status: true,
+            message: "Properties fetched successfully",
+            properties,
+        });
+    } catch (error) {
+        console.error("Error in getPropertiesByMicromarketSlug:", error);
+        res.status(500).json({ status: false, message: error.message });
+    }
+};
+
+
 // 📌 Delete Property
 const deleteProperty = async (req, res) => {
     try {
@@ -591,17 +680,79 @@ const deleteConnectivity = async (req, res) => {
     }
 };
 
+const toggleFavourite = async (req, res) => {
+    try {
+        const { propertyId } = req.body;
+        const userId = req.user?._id || req.user?.id || req.user?.userId;
+
+        const property = await Property.findById(propertyId);
+        if (!property) {
+            return res.status(404).json({
+                status: false,
+                message: "Property not found.",
+            });
+        }
+
+        // Toggle the favourite status
+        property.favouritestatus = property.favouritestatus === 1 ? 0 : 1;
+        await property.save();
+
+        const message = property.favouritestatus === 1
+            ? "Property added to favorites."
+            : "Property removed from favorites.";
+
+        res.status(200).json({
+            status: true,
+            message,
+            property,
+        });
+    } catch (error) {
+        res.status(500).json({ status: false, message: error.message });
+    }
+};
+
+
+const getFavourites = async (req, res) => {
+    try {
+        const userId = req.user?._id || req.user?.id || req.user?.userId;
+
+        // Fetch all properties where favouritestatus is 1
+        const favourites = await Property.find({
+            favouritestatus: 1,
+        }).populate([
+            { path: "state" },
+            { path: "city" },
+            { path: "propertyType" },
+            { path: "micromarket" },
+            { path: "locality" },
+            { path: "amenities.amenityid", model: "Amenity" },
+        ]);
+
+        res.status(200).json({
+            status: true,
+            message: "Favorites fetched successfully.",
+            favourites,
+        });
+    } catch (error) {
+        res.status(500).json({ status: false, message: error.message });
+    }
+};
+
+
+
 module.exports = {
     addProperty,
     editProperty,
     toggleFavourite,
-    getFavouriteProperties,
+    getFavourites,
     changeStatus,
-    getApprovedProperties,
+    getstatusProperties,
     getAllPropertiesfilter,
     getRecentlyAddedOfficeSpaces,
     getAllProperties,
     getPropertyById,
+    getPropertiesByCitySlug,
+    getPropertiesByMicromarketSlug,
     getPropertyBySlug,
     deleteProperty,
     deleteAvailableOption,

@@ -30,6 +30,10 @@ const footerLinkFaqRoutes = require("./routes/footerLinkFaqRoutes");
 const footerLinkMicroMarketFaqRoutes = require("./routes/footerLinkMicroMarketFaqRoutes");
 const generalSettingsRoutes = require("./routes/generalSettingsRoutes");
 const propertyRoutes = require("./routes/PropertyRoutes");
+const jobEnquiryRoutes = require("./routes/enquiryroutes/jobEnquiryRoutes");
+const postRequirementRoutes = require("./routes/enquiryroutes/postRequirementRoutes");
+const propertyEnquiryListRoutes = require("./routes/enquiryroutes/propertyEnquiryListRoutes");
+const contactEnquiryRoutes = require("./routes/enquiryroutes/contactEnquiryRoutes");
 
 // Authentication routes
 app.use("/api/auth", authRoutes);
@@ -83,13 +87,21 @@ app.use("/api/footer-link-micro-market-faqs", footerLinkMicroMarketFaqRoutes);
 // general settings routes
 app.use("/api/generalsettings", generalSettingsRoutes);
 
-
+// property routes
 app.use("/api/properties", propertyRoutes);
 
+// property routes
+app.use("/api/jobenquiries", jobEnquiryRoutes);
+
+// post requirements routes
+app.use("/api/post-requirements", postRequirementRoutes);
+
+// property enquiry list
+app.use("/api/property-enquiry-list", propertyEnquiryListRoutes);
+
+app.use("/api/contactenquiries", contactEnquiryRoutes);
 
 // fake route for testing
 app.get("/", (req, res) => res.send("Hello World!"));
-
-
 
 module.exports = app;

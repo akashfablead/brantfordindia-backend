@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { addProperty, editProperty, changeStatus, getApprovedProperties, getAllProperties, getPropertyById, getPropertyBySlug, deleteProperty, deleteAvailableOption, deleteMeetingRoom, deleteConnectivity, getAllPropertiesfilter, getRecentlyAddedOfficeSpaces, toggleFavourite, getFavouriteProperties } = require("../controllers/propertyController");
+const { addProperty, editProperty, changeStatus, getAllProperties, getPropertyById, getPropertyBySlug, deleteProperty, deleteAvailableOption, deleteMeetingRoom, deleteConnectivity, getAllPropertiesfilter, getRecentlyAddedOfficeSpaces, toggleFavourite, getFavourites, getstatusProperties, getPropertiesByCitySlug, getPropertiesByMicromarketSlug } = require("../controllers/propertyController");
 const { authenticateToken } = require("../middleware/authMiddleware");
 const optionalAuth = require("../middleware/optionalAuth");
 const createMulterUpload = require("../config/multer");
@@ -16,11 +16,24 @@ const propertyUploads = upload.fields([
 // CRUD routes
 router.post("/", authenticateToken, propertyUploads, addProperty);
 router.put("/:id", authenticateToken, propertyUploads, editProperty);
+router.delete("/:id", authenticateToken, deleteProperty);
+// Sub-item deletes
+router.delete("/available-option/:id/:optionId", authenticateToken, deleteAvailableOption);
+router.delete("/meeting-room/:id/:roomId", authenticateToken, deleteMeetingRoom);
+router.delete("/connectivity/:id/:connectId", authenticateToken, deleteConnectivity);
+
+
+// Get favorite properties user
+// Toggle favorite (add/remove)
 router.post("/favourites/toggle", authenticateToken, upload.none(), toggleFavourite);
-router.get("/favourites", authenticateToken, getFavouriteProperties);
+// Get all favorites
+router.get("/favourites", authenticateToken, getFavourites);
 
 router.post("/status/:id", authenticateToken, upload.none(), changeStatus);
-router.get("/approved", optionalAuth, getApprovedProperties);
+router.get("/status", optionalAuth, getstatusProperties);
+router.get("/slug/:slug", optionalAuth, getPropertyBySlug);
+router.get("/city/:slug", optionalAuth, getPropertiesByCitySlug);
+router.get("/micromarket-slug/:slug", optionalAuth, getPropertiesByMicromarketSlug);
 
 // all get & Filter routes 
 router.get("/", optionalAuth, getAllPropertiesfilter);
@@ -30,12 +43,8 @@ router.get("/recently-added-office-spaces", optionalAuth, getRecentlyAddedOffice
 router.get("/all", getAllProperties);
 
 router.get("/:id", getPropertyById);
-router.get("/slug/:slug", getPropertyBySlug);
-router.delete("/:id", authenticateToken, deleteProperty);
 
-// Sub-item deletes
-router.delete("/available-option/:id/:optionId", authenticateToken, deleteAvailableOption);
-router.delete("/meeting-room/:id/:roomId", authenticateToken, deleteMeetingRoom);
-router.delete("/connectivity/:id/:connectId", authenticateToken, deleteConnectivity);
+
+
 
 module.exports = router;

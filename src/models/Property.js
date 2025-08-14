@@ -1,9 +1,6 @@
 const mongoose = require("mongoose");
 
-const favouriteSchema = new mongoose.Schema({
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    status: { type: Number, enum: [0, 1], default: 0 }
-}, { _id: false });
+
 
 const connectivitySchema = new mongoose.Schema({
     mode: { type: String, required: true },
@@ -31,6 +28,8 @@ const unitTypeSchema = new mongoose.Schema({
 const propertySchema = new mongoose.Schema({
     title: { type: String, required: true },
     slug: { type: String, unique: true, required: true },
+    PropertyCitySlug: { type: String, unique: true, required: true },
+    PropertyMicromarketSlug: { type: String, unique: true, required: true },
     listingPropertyAs: { type: String, enum: ["Owner", "Broker", "Channel Partner"], required: true },
     propertyAvailableFor: { type: String, enum: ["Both", "Rent", "Sale"], required: true },
     listingType: { type: String, enum: ["Residential", "Commercial", "Coworking"], required: true },
@@ -91,9 +90,13 @@ const propertySchema = new mongoose.Schema({
 
     status: { type: String, enum: ["Pending", "Approved", "Rejected"], default: "Pending" },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    favouritestatus: {
+        type: Number,
+        enum: [0, 1], // 0: Removed, 1: Added
+        default: 0,
+    },
 
-    // favourites [userId, status]
-    favourites: [favouriteSchema]
+
 }, { timestamps: true });
 
 module.exports = mongoose.model("Property", propertySchema);
