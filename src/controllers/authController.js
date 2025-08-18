@@ -1,8 +1,12 @@
 // src/controllers/authController.js
+const { OAuth2Client } = require("google-auth-library");
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const { default: axios } = require("axios");
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const register = async (req, res) => {
     try {
@@ -33,19 +37,36 @@ const login = async (req, res) => {
     try {
         const { email, password } = req.body;
 
+        // Check if email is provided
+        if (!email || !password) {
+            return res.status(400).json({ status: false, message: "Email and password are required" });
+        }
+
+        // Find user
         const user = await User.findOne({ email });
-        if (!user) return res.status(404).json({ message: "User not found" });
+        if (!user) {
+            return res.status(404).json({ status: false, message: "User not found" });
+        }
 
+        // Validate password type
+        if (typeof user.password !== "string") {
+            return res.status(500).json({ status: false, message: "Stored password is invalid. Please reset your password." });
+        }
+
+        // Compare password
         const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
+        if (!isMatch) {
+            return res.status(401).json({ status: false, message: "Invalid email or password" });
+        }
 
+        // Generate JWT
         const token = jwt.sign(
             { id: user._id, role: user.role },
             process.env.JWT_SECRET,
             { expiresIn: "7d" }
         );
 
-        res.json({
+        return res.json({
             status: true,
             message: "Login successful",
             token,
@@ -57,18 +78,194 @@ const login = async (req, res) => {
             },
         });
     } catch (err) {
-        res.status(500).json({ status: false, message: err.message });
+        console.error("Login error:", err);
+        return res.status(500).json({ status: false, message: "Server error during login" });
+    }
+};
+
+// 🔹 Google OAuth client
+const googleLogin = async (req, res) => {
+    try {
+        const { token } = req.body || {};
+
+        if (!token) {
+            return res.status(400).json({
+                status: false,
+                message: "Token is required in request body"
+            });
+        }
+
+        // ✅ Verify Google token
+        const ticket = await client.verifyIdToken({
+            idToken: token,
+            audience: process.env.GOOGLE_CLIENT_ID,
+        });
+
+        const payload = ticket.getPayload();
+
+        // ✅ Check if user already exists
+        let user = await User.findOne({ email: payload.email });
+
+        if (!user) {
+            // ✅ Create new user if not exists
+            user = new User({
+                name: payload.name,
+                email: payload.email,
+                profileImage: payload.picture,
+                password: null,
+                role: "user",
+                number: null,
+                loginProvider: "google",
+            });
+            await user.save();
+        }
+
+        // ✅ Generate JWT token
+        const authToken = jwt.sign(
+            { id: user._id, email: user.email, role: user.role },
+            process.env.JWT_SECRET,
+            { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
+        );
+
+        // ✅ Return success response
+        return res.status(200).json({
+            status: true,
+            message: "Google login successful",
+            token: authToken,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                picture: user.picture,
+                role: user.role,
+                number: user.number,
+                profileImage: user.profileImage,
+                loginProvider: user.loginProvider,
+                status: user.status,
+                createdAt: user.createdAt,
+                updatedAt: user.updatedAt
+            }
+        });
+    } catch (error) {
+        console.error("Google Login Error:", error);
+        return res.status(500).json({
+            status: false,
+            message: error.message
+        });
+    }
+};
+
+const facebookLogin = async (req, res) => {
+    try {
+        const { accessToken } = req.body || {};
+
+        if (!accessToken) {
+            return res.status(400).json({
+                status: false,
+                message: "Access token is required"
+            });
+        }
+
+        // 🔹 Verify Facebook token & get user profile
+        const fbResponse = await axios.get(
+            `https://graph.facebook.com/me?fields=id,name,email,picture&access_token=${accessToken}`
+        );
+
+        const { name, email, picture, id } = fbResponse.data;
+
+        if (!email) {
+            return res.status(400).json({
+                status: false,
+                message: "Email permission is required from Facebook"
+            });
+        }
+
+        // 🔹 Check if user exists in DB
+        let user = await User.findOne({ email });
+
+        if (!user) {
+            user = new User({
+                name,
+                email,
+                profileImage: picture?.data?.url,
+                password: null,
+                number: null,
+                role: "user", // default role
+                loginProvider: "facebook",
+            });
+            await user.save();
+        }
+
+        // 🔹 Generate JWT
+        const authToken = jwt.sign(
+            { id: user._id, email: user.email, role: user.role },
+            process.env.JWT_SECRET,
+            { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
+        );
+
+        return res.status(200).json({
+            status: true,
+            message: "Facebook login successful",
+            token: authToken,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                number: user.number,
+                password: user.password,
+                profileImage: user.profileImage,
+                loginProvider: user.loginProvider,
+                status: user.status,
+                createdAt: user.createdAt,
+                updatedAt: user.updatedAt
+            }
+        });
+
+    } catch (error) {
+        console.error("Facebook Login Error:", error.response?.data || error.message);
+        return res.status(500).json({
+            status: false,
+            message: error.response?.data?.error?.message || error.message
+        });
     }
 };
 
 // GET /profile
+// const getProfile = async (req, res) => {
+//     try {
+//         const user = await User.findById(req.user.id).select("-password");
+//         if (!user) return res.status(404).json({ message: "User not found" });
+//         const fullImageUrl = user.profileImage
+//             ? `${process.env.BACKEND_URL}${user.profileImage}`
+//             : null;
+
+//         res.json({
+//             status: true,
+//             user: {
+//                 ...user._doc,
+//                 profileImage: fullImageUrl,
+//             },
+//         });
+//     } catch (err) {
+//         res.status(500).json({ status: false, message: err.message });
+//     }
+// };
 const getProfile = async (req, res) => {
     try {
         const user = await User.findById(req.user.id).select("-password");
         if (!user) return res.status(404).json({ message: "User not found" });
-        const fullImageUrl = user.profileImage
-            ? `${process.env.BACKEND_URL}${user.profileImage}`
-            : null;
+
+        let fullImageUrl = null;
+
+        if (user.profileImage) {
+            // Only prepend BACKEND_URL if loginProvider is not google/facebook
+            if (user.loginProvider === "google" || user.loginProvider === "facebook") {
+                fullImageUrl = user.profileImage; // keep external URL as-is
+            } else {
+                fullImageUrl = `${process.env.BACKEND_URL}${user.profileImage}`;
+            }
+        }
 
         res.json({
             status: true,
@@ -81,6 +278,8 @@ const getProfile = async (req, res) => {
         res.status(500).json({ status: false, message: err.message });
     }
 };
+
+
 
 // PUT /profile
 const editProfile = async (req, res) => {
@@ -252,6 +451,8 @@ const resetPassword = async (req, res) => {
 module.exports = {
     register,
     login,
+    googleLogin,
+    facebookLogin,
     getProfile,
     editProfile,
     changePassword,

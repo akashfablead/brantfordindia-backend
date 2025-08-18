@@ -99,8 +99,6 @@ function parseArrayFields(reqBody, fieldNames) {
 
 const addProperty = async (req, res) => {
     try {
-        console.log("Full request body:", req.body); // Log the entire request body
-
         const {
             title, listingPropertyAs, propertyAvailableFor, listingType,
             state, city, buildingName, buildingStatus, proposedAvailabilityDate,
@@ -209,8 +207,6 @@ const addProperty = async (req, res) => {
             createdBy: req.user?._id || req.user?.id || req.user?.userId
         });
 
-        console.log("Property object before save:", newProperty);
-
         // Save the property
         const savedProperty = await newProperty.save();
         const populatedProperty = await Property.findById(savedProperty._id)
@@ -222,7 +218,6 @@ const addProperty = async (req, res) => {
             property: populatedProperty
         });
     } catch (error) {
-        console.error("Error in addProperty:", error);
         res.status(500).json({ status: false, message: error.message });
     }
 };

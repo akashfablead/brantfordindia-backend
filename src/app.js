@@ -34,6 +34,8 @@ const jobEnquiryRoutes = require("./routes/enquiryroutes/jobEnquiryRoutes");
 const postRequirementRoutes = require("./routes/enquiryroutes/postRequirementRoutes");
 const propertyEnquiryListRoutes = require("./routes/enquiryroutes/propertyEnquiryListRoutes");
 const contactEnquiryRoutes = require("./routes/enquiryroutes/contactEnquiryRoutes");
+const ownerRoutes = require("./routes/propertyusersroutes/ownerRoutes");
+const brokerRoutes = require("./routes/propertyusersroutes/brokerRoutes");
 
 // Authentication routes
 app.use("/api/auth", authRoutes);
@@ -99,7 +101,14 @@ app.use("/api/post-requirements", postRequirementRoutes);
 // property enquiry list
 app.use("/api/property-enquiry-list", propertyEnquiryListRoutes);
 
+// contact enquiries
 app.use("/api/contactenquiries", contactEnquiryRoutes);
+
+// owner routes
+app.use("/api/owners", ownerRoutes);
+
+// broker routes
+app.use("/api/brokers", brokerRoutes);
 
 // fake route for testing
 app.get("/", (req, res) => res.send("Hello World!"));
