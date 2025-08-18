@@ -35,17 +35,22 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { email, password, role } = req.body;
 
-        // Check if email is provided
-        if (!email || !password) {
-            return res.status(400).json({ status: false, message: "Email and password are required" });
+        // Check if all fields are provided
+        if (!email || !password || !role) {
+            return res.status(400).json({ status: false, message: "Email, password, and role are required" });
         }
 
         // Find user
         const user = await User.findOne({ email });
         if (!user) {
             return res.status(404).json({ status: false, message: "User not found" });
+        }
+
+        // Validate role
+        if (user.role !== role) {
+            return res.status(403).json({ status: false, message: "You are not authorized for this role" });
         }
 
         // Validate password type
@@ -82,6 +87,7 @@ const login = async (req, res) => {
         return res.status(500).json({ status: false, message: "Server error during login" });
     }
 };
+
 
 // 🔹 Google OAuth client
 const googleLogin = async (req, res) => {
