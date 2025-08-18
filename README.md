@@ -1,0 +1,14 @@
+## Environment Variables
+
+Create a `.env` file in the root directory of your project and add the following variables:
+
+```env
+PORT=5000
+MONGO_URI=mongodb://localhost:27017/your_database_name
+JWT_SECRET=your_jwt_secret_key
+BACKEND_URL=http://localhost:5000
+FRONTEND_URL=http://localhost:8080
+SITE_KEY=your_site_key
+RECAPTCHA_SECRET=your_recaptcha_secret
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
