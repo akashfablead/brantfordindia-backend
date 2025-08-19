@@ -77,13 +77,13 @@ const getStates = async (req, res) => {
         res.status(200).json({
             message: "States fetched successfully",
             data: states,
-            success: true
+            status: true
         });
     } catch (error) {
         res.status(500).json({
             message: "Server error",
             error: error.message,
-            success: false
+            status: false
         });
     }
 };
@@ -96,13 +96,13 @@ const getStateswithouttoken = async (req, res) => {
         res.status(200).json({
             message: "States fetched successfully",
             data: states,
-            success: true
+            status: true
         });
     } catch (error) {
         res.status(500).json({
             message: "Server error",
             error: error.message,
-            success: false
+            status: false
         });
     }
 };
