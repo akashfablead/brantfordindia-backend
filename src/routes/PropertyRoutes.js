@@ -40,9 +40,8 @@ router.get("/", optionalAuth, getAllPropertiesfilter);
 router.get("/recently-added-office-spaces", optionalAuth, getRecentlyAddedOfficeSpaces);
 router.get("/search", optionalAuth, searchProperties);
 
-// all property in admin
+// all property in fronted
 router.get("/all", getAllProperties);
-
 router.get("/:id", getPropertyById);
 
 

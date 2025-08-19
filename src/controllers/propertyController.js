@@ -4,6 +4,7 @@ const { default: mongoose } = require("mongoose");
 const PropertyType = require("../models/Master/PropertyType");
 const City = require("../models/Master/City");
 const Micromarket = require("../models/Master/Micromarket");
+const Locality = require("../models/Master/Locality");
 
 // 📌 Helper to build full URL
 // const getFullUrl = (req, filePath) => {
@@ -735,64 +736,74 @@ const getFavourites = async (req, res) => {
 };
 
 // 📌 Search Properties by location (city / micromarket / locality / pincode) and workspace type
+const formatPropertyImages = (req, property) => {
+    const baseUrl = process.env.BACKEND_URL || ""; // example: http://localhost:5000
+    return {
+        ...property.toObject(),
+        propertyImages: property.propertyImages.map(img => `${baseUrl}${img}`),
+        featuredImages: property.featuredImages.map(img => `${baseUrl}${img}`),
+        floorPlans: property.floorPlans.map(img => `${baseUrl}${img}`),
+    };
+};
+
 const searchProperties = async (req, res) => {
     try {
-        let { location, workspaceType } = req.query;
+        const { location, workspaceType } = req.query;
+        const filter = { status: "Approved" };
 
-        const filter = {
-            status: "Approved" // ✅ Only approved properties
-        };
-
-        // ✅ Location filter
         if (location) {
-            const regex = new RegExp(location, "i"); // case-insensitive search
+            const regex = new RegExp(location, "i"); // case-insensitive
+
+            // Find matching IDs
+            const [cityIds, microIds, localityIds] = await Promise.all([
+                City.find({ name: regex }).distinct("_id"),
+                Micromarket.find({ name: regex }).distinct("_id"),
+                Locality.find({ name: regex }).distinct("_id"),
+            ]);
+
             filter.$or = [
-                { "city.name": regex },        // City name match
-                { "micromarket.name": regex }, // Micromarket match
-                { "locality.name": regex },    // Locality match
-                { pinCode: regex }             // Pincode match
+                { city: { $in: cityIds } },
+                { micromarket: { $in: microIds } },
+                { locality: { $in: localityIds } },
+                { pinCode: regex },
             ];
         }
 
-        // ✅ Workspace type filter (PropertyType)
         if (workspaceType) {
-            filter.propertyType = workspaceType; // propertyType ObjectId pass hoga
+            filter.propertyType = workspaceType;
         }
 
-        // ✅ Exclude current user's own properties
-        const userId = req.user?._id || req.user?.id || req.user?.userId;
-        if (userId) {
-            filter.createdBy = { $ne: new mongoose.Types.ObjectId(userId) };
-        }
+        // Exclude user's own properties
+        const userId = req.user?._id;
+        if (userId) filter.createdBy = { $ne: mongoose.Types.ObjectId(userId) };
 
-        // 🔍 Query DB
         let properties = await Property.find(filter)
-            .populate("state city propertyType micromarket locality")
+            .populate("state city micromarket locality propertyType")
             .populate("residentialUnitTypes.unitTypeid")
-            .populate({
-                path: "amenities.amenityid",
-                model: "Amenity"
-            });
+            .populate("amenities.amenityid");
 
-        // ✅ Format image URLs
-        properties = properties.map(p => formatAmenitiesWithFullUrl(req, p));
+        // Format image URLs
+        properties = properties.map(p => formatPropertyImages(req, p));
 
         if (!properties.length) {
             return res.status(200).json({
                 status: true,
-                message: "No properties found matching your search"
+                message: "No properties found for this location",
+                properties: [],
             });
         }
 
         res.json({
             status: true,
             message: "Properties fetched successfully",
-            properties
+            properties,
         });
-
     } catch (error) {
-        console.error("Error in searchProperties:", error);
-        res.status(500).json({ status: false, message: error.message });
+        console.error("Error searching properties:", error);
+        res.status(500).json({
+            status: false,
+            message: "Failed to search by location. Please check the location details.",
+        });
     }
 };
 
