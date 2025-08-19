@@ -838,6 +838,60 @@ const getSimilarProperties = async (req, res) => {
     }
 };
 
+// GET top cities by property type
+const getTopCitiesByPropertyType = async (req, res) => {
+    try {
+        const { propertyTypeId } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(propertyTypeId)) {
+            return res.status(400).json({ status: false, message: "Invalid PropertyType ID" });
+        }
+
+        // Aggregate properties by city
+        let topCities = await Property.aggregate([
+            { $match: { propertyType: new mongoose.Types.ObjectId(propertyTypeId), status: "Approved" } },
+            { $group: { _id: "$city", propertyCount: { $sum: 1 } } },
+            { $sort: { propertyCount: -1 } }, // sort descending
+            { $limit: 10 },
+            {
+                $lookup: {
+                    from: "cities", // MongoDB collection name for City model
+                    localField: "_id",
+                    foreignField: "_id",
+                    as: "cityDetails"
+                }
+            },
+            { $unwind: "$cityDetails" },
+            {
+                $project: {
+                    _id: 0,
+                    cityId: "$cityDetails._id",
+                    cityName: "$cityDetails.name",
+                    cityImage: "$cityDetails.image",
+                    propertyCount: 1
+                }
+            }
+        ]);
+
+        // Add full URL to city image
+        topCities = topCities.map(city => {
+            if (city.cityImage) {
+                const cleanPath = city.cityImage.replace(/^\/+/, "");
+                city.cityImage = `${req.protocol}://${req.get("host")}/${cleanPath}`;
+            }
+            return city;
+        });
+
+        res.status(200).json({
+            status: true,
+            message: "Top cities fetched successfully",
+            topCities
+        });
+    } catch (error) {
+        console.error("Error in getTopCitiesByPropertyType:", error);
+        res.status(500).json({ status: false, message: error.message });
+    }
+};
 
 
 module.exports = {
@@ -859,5 +913,6 @@ module.exports = {
     deleteMeetingRoom,
     deleteConnectivity,
     searchProperties,
-    getSimilarProperties
+    getSimilarProperties,
+    getTopCitiesByPropertyType
 };
