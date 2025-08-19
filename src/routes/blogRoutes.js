@@ -1,5 +1,5 @@
 const express = require("express");
-const { addBlog, editBlog, getAllBlogs, getBlogById, deleteBlog } = require("../controllers/blogController");
+const { addBlog, editBlog, getAllBlogs, getBlogById, deleteBlog, getBlogBySlug } = require("../controllers/blogController");
 const { authenticateToken } = require("../middleware/authMiddleware");
 const createMulterUpload = require("../config/multer");
 const upload = createMulterUpload("blogs");
@@ -9,6 +9,7 @@ router.post("/", upload.single("image"), authenticateToken, addBlog);
 router.put("/:id", upload.single("image"), authenticateToken, editBlog);
 router.get("/", getAllBlogs);
 router.get("/:id", getBlogById);
+router.get("/slug/:slug", getBlogBySlug);
 router.delete("/:id", authenticateToken, deleteBlog);
 
 module.exports = router;

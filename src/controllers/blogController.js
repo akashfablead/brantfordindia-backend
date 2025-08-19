@@ -146,6 +146,43 @@ const getBlogById = async (req, res) => {
     }
 };
 
+// Get Blog by Slug
+const getBlogBySlug = async (req, res) => {
+    try {
+        const { slug } = req.params;
+
+        if (!slug) {
+            return res.status(400).json({ status: false, message: "Slug is required" });
+        }
+
+        const blog = await Blog.findOne({ slug })
+            .populate("category", "name")
+            .populate("tag", "name")
+            .populate("createdBy", "name email role profileImage");
+
+        if (!blog) {
+            return res.status(404).json({ status: false, message: "Blog not found" });
+        }
+
+        const fullImage = blog.image ? `${process.env.BACKEND_URL}${blog.image}` : null;
+        const fullProfileImage = blog.createdBy?.profileImage
+            ? `${process.env.BACKEND_URL}${blog.createdBy.profileImage}`
+            : null;
+
+        const blogWithFullImage = {
+            ...blog._doc,
+            image: fullImage,
+            createdBy: blog.createdBy
+                ? { ...blog.createdBy._doc, profileImage: fullProfileImage }
+                : null
+        };
+
+        res.json({ status: true, message: "Blog fetched successfully", blog: blogWithFullImage });
+    } catch (error) {
+        res.status(500).json({ status: false, message: error.message });
+    }
+};
+
 // Delete Blog
 const deleteBlog = async (req, res) => {
     try {
@@ -166,5 +203,6 @@ module.exports = {
     editBlog,
     getAllBlogs,
     getBlogById,
+    getBlogBySlug,
     deleteBlog
 };

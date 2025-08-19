@@ -17,11 +17,11 @@ const propertyUploads = upload.fields([
 router.post("/", authenticateToken, propertyUploads, addProperty);
 router.put("/:id", authenticateToken, propertyUploads, editProperty);
 router.delete("/:id", authenticateToken, deleteProperty);
+
 // Sub-item deletes
 router.delete("/available-option/:id/:optionId", authenticateToken, deleteAvailableOption);
 router.delete("/meeting-room/:id/:roomId", authenticateToken, deleteMeetingRoom);
 router.delete("/connectivity/:id/:connectId", authenticateToken, deleteConnectivity);
-
 
 // Get favorite properties user
 // Toggle favorite (add/remove)
