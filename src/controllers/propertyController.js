@@ -848,7 +848,7 @@ const getTopCitiesByPropertyType = async (req, res) => {
         }
 
         // Aggregate properties by city
-        let topCities = await Property.aggregate([
+        const topCities = await Property.aggregate([
             { $match: { propertyType: new mongoose.Types.ObjectId(propertyTypeId), status: "Approved" } },
             { $group: { _id: "$city", propertyCount: { $sum: 1 } } },
             { $sort: { propertyCount: -1 } }, // sort descending
@@ -867,20 +867,10 @@ const getTopCitiesByPropertyType = async (req, res) => {
                     _id: 0,
                     cityId: "$cityDetails._id",
                     cityName: "$cityDetails.name",
-                    cityImage: "$cityDetails.image",
                     propertyCount: 1
                 }
             }
         ]);
-
-        // Add full URL to city image
-        topCities = topCities.map(city => {
-            if (city.cityImage) {
-                const cleanPath = city.cityImage.replace(/^\/+/, "");
-                city.cityImage = `${req.protocol}://${req.get("host")}/${cleanPath}`;
-            }
-            return city;
-        });
 
         res.status(200).json({
             status: true,
