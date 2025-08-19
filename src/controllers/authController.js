@@ -20,7 +20,6 @@ const register = async (req, res) => {
         if (existingUser) return res.status(400).json({ message: "User already exists" });
 
         const defaultProfileImage = "/uploads/profiles/default-profile-image.png";
-
         const hashedPassword = await bcrypt.hash(password, 10);
 
         const user = new User({
@@ -28,17 +27,36 @@ const register = async (req, res) => {
             email,
             number,
             password: hashedPassword,
-            role: role,
+            role,
             profileImage: req.file ? `/uploads/profiles/${req.file.filename}` : defaultProfileImage,
         });
 
         await user.save();
 
-        res.status(201).json({ status: true, message: "Registration successful", user });
+        // ✅ format full image URL
+        const fullImageUrl = user.profileImage
+            ? `${process.env.BACKEND_URL.replace(/\/$/, "")}/${user.profileImage.replace(/^\//, "")}`
+            : null;
+
+        res.status(201).json({
+            status: true,
+            message: "Registration successful",
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                number: user.number,
+                role: user.role,
+                profileImage: fullImageUrl,
+                createdAt: user.createdAt,
+                updatedAt: user.updatedAt
+            }
+        });
     } catch (err) {
         res.status(500).json({ status: false, message: err.message });
     }
 };
+
 
 const login = async (req, res) => {
     try {
@@ -87,6 +105,10 @@ const login = async (req, res) => {
                 name: user.name,
                 email: user.email,
                 role: user.role,
+                number: user.number,
+                profileImage: user.profileImage ? `${process.env.BACKEND_URL}${user.profileImage}` : null,
+                loginProvider: user.loginProvider || "local", // default to 'local' if not set
+                status: user.status,
             },
         });
     } catch (err) {
@@ -96,77 +118,6 @@ const login = async (req, res) => {
 };
 
 
-// 🔹 Google OAuth client
-// const googleLogin = async (req, res) => {
-//     try {
-//         const { token } = req.body || {};
-
-//         if (!token) {
-//             return res.status(400).json({
-//                 status: false,
-//                 message: "Token is required in request body"
-//             });
-//         }
-
-//         // ✅ Verify Google token
-//         const ticket = await client.verifyIdToken({
-//             idToken: token,
-//             audience: process.env.GOOGLE_CLIENT_ID,
-//         });
-
-//         const payload = ticket.getPayload();
-
-//         // ✅ Check if user already exists
-//         let user = await User.findOne({ email: payload.email });
-
-//         if (!user) {
-//             // ✅ Create new user if not exists
-//             user = new User({
-//                 name: payload.name,
-//                 email: payload.email,
-//                 profileImage: payload.picture,
-//                 password: null,
-//                 role: "user",
-//                 number: null,
-//                 loginProvider: "google",
-//             });
-//             await user.save();
-//         }
-
-//         // ✅ Generate JWT token
-//         const authToken = jwt.sign(
-//             { id: user._id, email: user.email, role: user.role },
-//             process.env.JWT_SECRET,
-//             { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
-//         );
-
-//         // ✅ Return success response
-//         return res.status(200).json({
-//             status: true,
-//             message: "Google login successful",
-//             token: authToken,
-//             user: {
-//                 id: user._id,
-//                 name: user.name,
-//                 email: user.email,
-//                 picture: user.picture,
-//                 role: user.role,
-//                 number: user.number,
-//                 profileImage: user.profileImage,
-//                 loginProvider: user.loginProvider,
-//                 status: user.status,
-//                 createdAt: user.createdAt,
-//                 updatedAt: user.updatedAt
-//             }
-//         });
-//     } catch (error) {
-//         console.error("Google Login Error:", error);
-//         return res.status(500).json({
-//             status: false,
-//             message: error.message
-//         });
-//     }
-// };
 
 const googleLogin = async (req, res) => {
     try {

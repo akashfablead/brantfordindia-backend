@@ -59,7 +59,14 @@ const getPropertyTypes = async (req, res) => {
         res.status(500).json({ message: error.message, success: false });
     }
 };
-
+const getPropertyTypesWithoutToken = async (req, res) => {
+    try {
+        const propertyTypes = await PropertyType.find().sort({ createdAt: -1 });
+        res.status(200).json({ message: "Property Types fetched successfully", success: true, propertyTypes });
+    } catch (error) {
+        res.status(500).json({ message: error.message, success: false });
+    }
+};
 // Get Property Type by ID
 const getPropertyTypeById = async (req, res) => {
     try {
@@ -88,6 +95,7 @@ module.exports = {
     addPropertyType,
     editPropertyType,
     getPropertyTypes,
+    getPropertyTypesWithoutToken,
     getPropertyTypeById,
     deletePropertyType
 };
