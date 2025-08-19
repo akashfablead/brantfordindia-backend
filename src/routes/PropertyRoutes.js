@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { addProperty, editProperty, changeStatus, getAllProperties, getPropertyById, getPropertyBySlug, deleteProperty, deleteAvailableOption, deleteMeetingRoom, deleteConnectivity, getAllPropertiesfilter, getRecentlyAddedOfficeSpaces, toggleFavourite, getFavourites, getstatusProperties, getPropertiesByCitySlug, getPropertiesByMicromarketSlug, searchProperties } = require("../controllers/propertyController");
+const { addProperty, editProperty, changeStatus, getAllProperties, getPropertyById, getPropertyBySlug, deleteProperty, deleteAvailableOption, deleteMeetingRoom, deleteConnectivity, getAllPropertiesfilter, getRecentlyAddedOfficeSpaces, toggleFavourite, getFavourites, getstatusProperties, getPropertiesByCitySlug, getPropertiesByMicromarketSlug, searchProperties, getSimilarProperties } = require("../controllers/propertyController");
 const { authenticateToken } = require("../middleware/authMiddleware");
 const optionalAuth = require("../middleware/optionalAuth");
 const createMulterUpload = require("../config/multer");
@@ -43,8 +43,6 @@ router.get("/search", optionalAuth, searchProperties);
 // all property in fronted
 router.get("/all", getAllProperties);
 router.get("/:id", getPropertyById);
-
-
-
+router.get("/similar/:id", getSimilarProperties);
 
 module.exports = router;

@@ -796,6 +796,48 @@ const searchProperties = async (req, res) => {
     }
 };
 
+// 📌 Get Similar Properties
+const getSimilarProperties = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Find the base property
+        const baseProperty = await Property.findById(id);
+        if (!baseProperty) {
+            return res.status(404).json({ status: false, message: "Property not found" });
+        }
+
+        // Build filter for similar properties
+        const filter = {
+            _id: { $ne: baseProperty._id }, // exclude current property
+            status: "Approved", // only approved properties
+            propertyType: baseProperty.propertyType,
+            city: baseProperty.city,
+            listingType: baseProperty.listingType
+        };
+
+        const similarProperties = await Property.find(filter)
+            .populate("state city propertyType micromarket locality")
+            .populate("residentialUnitTypes.unitTypeid")
+            .populate({
+                path: "amenities.amenityid",
+                model: "Amenity"
+            })
+            .limit(10); // limit to 10 similar properties
+
+        const formattedProperties = similarProperties.map(p => formatAmenitiesWithFullUrl(req, p));
+
+        res.status(200).json({
+            status: true,
+            message: "Similar properties fetched successfully",
+            properties: formattedProperties
+        });
+    } catch (error) {
+        console.error("Error fetching similar properties:", error);
+        res.status(500).json({ status: false, message: error.message });
+    }
+};
+
 
 
 module.exports = {
@@ -816,5 +858,6 @@ module.exports = {
     deleteAvailableOption,
     deleteMeetingRoom,
     deleteConnectivity,
-    searchProperties
+    searchProperties,
+    getSimilarProperties
 };
