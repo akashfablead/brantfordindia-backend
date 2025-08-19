@@ -11,6 +11,7 @@ const Micromarket = require("../models/Master/Micromarket");
 //     return `${req.protocol}://${req.get("host")}/${filePath.replace(/\\/g, "/")}`;
 // };
 
+
 const getFullUrl = (req, relativePath) => {
     if (!relativePath) return null;
     // Remove any starting slash to avoid "//" in final URL
@@ -733,6 +734,68 @@ const getFavourites = async (req, res) => {
     }
 };
 
+// 📌 Search Properties by location (city / micromarket / locality / pincode) and workspace type
+const searchProperties = async (req, res) => {
+    try {
+        let { location, workspaceType } = req.query;
+
+        const filter = {
+            status: "Approved" // ✅ Only approved properties
+        };
+
+        // ✅ Location filter
+        if (location) {
+            const regex = new RegExp(location, "i"); // case-insensitive search
+            filter.$or = [
+                { "city.name": regex },        // City name match
+                { "micromarket.name": regex }, // Micromarket match
+                { "locality.name": regex },    // Locality match
+                { pinCode: regex }             // Pincode match
+            ];
+        }
+
+        // ✅ Workspace type filter (PropertyType)
+        if (workspaceType) {
+            filter.propertyType = workspaceType; // propertyType ObjectId pass hoga
+        }
+
+        // ✅ Exclude current user's own properties
+        const userId = req.user?._id || req.user?.id || req.user?.userId;
+        if (userId) {
+            filter.createdBy = { $ne: new mongoose.Types.ObjectId(userId) };
+        }
+
+        // 🔍 Query DB
+        let properties = await Property.find(filter)
+            .populate("state city propertyType micromarket locality")
+            .populate("residentialUnitTypes.unitTypeid")
+            .populate({
+                path: "amenities.amenityid",
+                model: "Amenity"
+            });
+
+        // ✅ Format image URLs
+        properties = properties.map(p => formatAmenitiesWithFullUrl(req, p));
+
+        if (!properties.length) {
+            return res.status(404).json({
+                status: false,
+                message: "No properties found matching your search"
+            });
+        }
+
+        res.json({
+            status: true,
+            message: "Properties fetched successfully",
+            properties
+        });
+
+    } catch (error) {
+        console.error("Error in searchProperties:", error);
+        res.status(500).json({ status: false, message: error.message });
+    }
+};
+
 
 
 module.exports = {
@@ -752,5 +815,6 @@ module.exports = {
     deleteProperty,
     deleteAvailableOption,
     deleteMeetingRoom,
-    deleteConnectivity
+    deleteConnectivity,
+    searchProperties
 };
