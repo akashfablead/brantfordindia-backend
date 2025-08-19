@@ -778,8 +778,8 @@ const searchProperties = async (req, res) => {
         properties = properties.map(p => formatAmenitiesWithFullUrl(req, p));
 
         if (!properties.length) {
-            return res.status(404).json({
-                status: false,
+            return res.status(200).json({
+                status: true,
                 message: "No properties found matching your search"
             });
         }

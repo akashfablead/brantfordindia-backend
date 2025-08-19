@@ -11,8 +11,12 @@ const userSchema = new mongoose.Schema({
     profileImage: { type: String },
     status: { type: String, enum: ["active", "inactive"], default: "active" },
     loginProvider: { type: String },
+    cityId: { type: mongoose.Schema.Types.ObjectId, ref: "City" },
+    stateId: { type: mongoose.Schema.Types.ObjectId, ref: "State" },
+    bio: { type: String, trim: true },
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },
+    createdAt: { type: Date, default: Date.now },
 }, { timestamps: true });
 
 

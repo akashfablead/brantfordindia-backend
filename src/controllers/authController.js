@@ -5,6 +5,8 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const { default: axios } = require("axios");
+const Property = require("../models/Property");
+const PropertyEnquiryList = require("../models/Enquiry/PropertyEnquiryList");
 
 const client = new OAuth2Client(
     process.env.GOOGLE_CLIENT_ID,
@@ -274,11 +276,19 @@ const getProfile = async (req, res) => {
             }
         }
 
+        // ✅ Count total listings created by this user
+        const totalListings = await Property.countDocuments({ userId: user._id });
+
+        // ✅ Count total enquiries made by this user
+        const totalEnquiries = await PropertyEnquiryList.countDocuments({ userId: user._id });
+
         res.json({
             status: true,
             user: {
                 ...user._doc,
                 profileImage: fullImageUrl,
+                totalListings,
+                totalEnquiries,
             },
         });
     } catch (err) {
@@ -291,7 +301,7 @@ const getProfile = async (req, res) => {
 // PUT /profile
 const editProfile = async (req, res) => {
     try {
-        const { name, email, number } = req.body;
+        const { name, email, number, bio, stateId, cityId } = req.body;
         const profileImage = req.file ? `/uploads/profiles/${req.file.filename}` : undefined;
 
         const user = await User.findById(req.user.id);
@@ -300,6 +310,9 @@ const editProfile = async (req, res) => {
         user.name = name || user.name;
         user.email = email || user.email;
         user.number = number || user.number;
+        user.bio = bio || user.bio;
+        user.stateId = stateId || user.stateId;
+        user.cityId = cityId || user.cityId;
         if (profileImage) user.profileImage = profileImage;
 
         await user.save();
