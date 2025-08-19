@@ -735,17 +735,6 @@ const getFavourites = async (req, res) => {
     }
 };
 
-// 📌 Search Properties by location (city / micromarket / locality / pincode) and workspace type
-const formatPropertyImages = (req, property) => {
-    const baseUrl = process.env.BACKEND_URL || ""; // example: http://localhost:5000
-    return {
-        ...property.toObject(),
-        propertyImages: property.propertyImages.map(img => `${baseUrl}${img}`),
-        featuredImages: property.featuredImages.map(img => `${baseUrl}${img}`),
-        floorPlans: property.floorPlans.map(img => `${baseUrl}${img}`),
-    };
-};
-
 const searchProperties = async (req, res) => {
     try {
         const { location, workspaceType } = req.query;
@@ -783,7 +772,7 @@ const searchProperties = async (req, res) => {
             .populate("amenities.amenityid");
 
         // Format image URLs
-        properties = properties.map(p => formatPropertyImages(req, p));
+        properties = properties.map(p => formatAmenitiesWithFullUrl(req, p));
 
         if (!properties.length) {
             return res.status(200).json({
