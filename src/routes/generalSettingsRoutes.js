@@ -8,7 +8,8 @@ const router = express.Router();
 // For image uploads
 router.post("/", authenticateToken, upload.fields([
     { name: "homePageBanner", maxCount: 1 },
-    { name: "aboutUsImage", maxCount: 1 }
+    { name: "aboutUsImage", maxCount: 1 },
+    { name: "icon[]", maxCount: 10 }
 ]), addOrEditGeneralSettings);
 router.get("/", getGeneralSettings);
 router.get("/:type", getGeneralSettingsByType);

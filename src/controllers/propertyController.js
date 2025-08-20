@@ -839,19 +839,24 @@ const getSimilarProperties = async (req, res) => {
 };
 
 // GET top cities by property type
-const getTopCitiesByPropertyType = async (req, res) => {
+ const getTopCitiesByPropertyType = async (req, res) => {
     try {
         const { propertyTypeId } = req.params;
 
-        if (!mongoose.Types.ObjectId.isValid(propertyTypeId)) {
-            return res.status(400).json({ status: false, message: "Invalid PropertyType ID" });
+        let matchStage = { status: "Approved" };
+
+        if (propertyTypeId !== "all") {
+            if (!mongoose.Types.ObjectId.isValid(propertyTypeId)) {
+                return res.status(400).json({ status: false, message: "Invalid PropertyType ID" });
+            }
+            matchStage.propertyType = new mongoose.Types.ObjectId(propertyTypeId);
         }
 
         // Aggregate properties by city
         const topCities = await Property.aggregate([
-            { $match: { propertyType: new mongoose.Types.ObjectId(propertyTypeId), status: "Approved" } },
+            { $match: matchStage },
             { $group: { _id: "$city", propertyCount: { $sum: 1 } } },
-            { $sort: { propertyCount: -1 } }, // sort descending
+            { $sort: { propertyCount: -1 } },
             { $limit: 10 },
             {
                 $lookup: {
@@ -874,7 +879,9 @@ const getTopCitiesByPropertyType = async (req, res) => {
 
         res.status(200).json({
             status: true,
-            message: "Top cities fetched successfully",
+            message: propertyTypeId === "all"
+                ? "Top cities (all property types) fetched successfully"
+                : "Top cities fetched successfully",
             topCities
         });
     } catch (error) {
@@ -882,7 +889,6 @@ const getTopCitiesByPropertyType = async (req, res) => {
         res.status(500).json({ status: false, message: error.message });
     }
 };
-
 
 module.exports = {
     addProperty,
