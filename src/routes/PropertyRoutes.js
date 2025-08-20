@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { addProperty, editProperty, changeStatus, getAllProperties, getPropertyById, getPropertyBySlug, deleteProperty, deleteAvailableOption, deleteMeetingRoom, deleteConnectivity, getAllPropertiesfilter, getRecentlyAddedOfficeSpaces, toggleFavourite, getFavourites, getstatusProperties, getPropertiesByCitySlug, getPropertiesByMicromarketSlug, searchProperties, getSimilarProperties, getTopCitiesByPropertyType } = require("../controllers/propertyController");
+const { addProperty, editProperty, changeStatus, getAllProperties, getPropertyById, getPropertyBySlug, deleteProperty, deleteAvailableOption, deleteMeetingRoom, deleteConnectivity, getAllPropertiesfilter, getRecentlyAddedOfficeSpaces, toggleFavourite, getFavourites, getstatusProperties, getPropertiesByCitySlug, getPropertiesByMicromarketSlug, searchProperties, getSimilarProperties, getTopCitiesByPropertyType, toggleCompareProperty, getCompareProperties } = require("../controllers/propertyController");
 const { authenticateToken } = require("../middleware/authMiddleware");
 const optionalAuth = require("../middleware/optionalAuth");
 const createMulterUpload = require("../config/multer");
@@ -28,6 +28,13 @@ router.delete("/connectivity/:id/:connectId", authenticateToken, deleteConnectiv
 router.post("/favourites/toggle", authenticateToken, upload.none(), toggleFavourite);
 // Get all favorites
 router.get("/favourites", authenticateToken, getFavourites);
+
+// Compare Property
+router.post("/compare/:propertyId", authenticateToken, upload.none(), toggleCompareProperty);
+// Get compare properties
+router.get("/compare", authenticateToken, getCompareProperties);
+
+
 
 router.post("/status/:id", authenticateToken, upload.none(), changeStatus);
 router.get("/status", optionalAuth, getstatusProperties);

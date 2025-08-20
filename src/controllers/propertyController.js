@@ -839,7 +839,7 @@ const getSimilarProperties = async (req, res) => {
 };
 
 // GET top cities by property type
- const getTopCitiesByPropertyType = async (req, res) => {
+const getTopCitiesByPropertyType = async (req, res) => {
     try {
         const { propertyTypeId } = req.params;
 
@@ -890,6 +890,45 @@ const getSimilarProperties = async (req, res) => {
     }
 };
 
+// 📌 Compare Properties
+const toggleCompareProperty = async (req, res) => {
+    try {
+        const { propertyId } = req.params;
+
+        let property = await Property.findById(propertyId);
+        if (!property) {
+            return res.status(404).json({ message: "Property not found" });
+        }
+
+        // Toggle compare status
+        property.compareStatus = property.compareStatus === 1 ? 0 : 1;
+        await property.save();
+
+        res.status(200).json({
+            message: property.compareStatus === 1
+                ? "Property added to compare list"
+                : "Property removed from compare list",
+            property,
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+};
+
+const getCompareProperties = async (req, res) => {
+    try {
+        const properties = await Property.find({ compareStatus: 1 })
+            .populate("city state propertyType micromarket locality");
+
+        res.status(200).json({
+            message: "Compare properties fetched successfully",
+            properties,
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+};
+
 module.exports = {
     addProperty,
     editProperty,
@@ -910,5 +949,7 @@ module.exports = {
     deleteConnectivity,
     searchProperties,
     getSimilarProperties,
-    getTopCitiesByPropertyType
+    getTopCitiesByPropertyType,
+    toggleCompareProperty,
+    getCompareProperties
 };

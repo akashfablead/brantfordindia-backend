@@ -87,7 +87,11 @@ const propertySchema = new mongoose.Schema({
     videoUrl: { type: String },
 
     availableOptions: [availableOptionSchema],
-
+    compareStatus: {
+        type: Number,
+        enum: [0, 1], // 0: Removed, 1: Added
+        default: 0,
+    },
     status: { type: String, enum: ["Pending", "Approved", "Rejected"], default: "Pending" },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     favouritestatus: {
