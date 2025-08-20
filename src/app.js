@@ -2,6 +2,7 @@
 const express = require("express");
 const app = express();
 const authRoutes = require("./routes/authRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
 const stateRoutes = require("./routes/masterroutes/stateRoutes");
 const cityRoutes = require("./routes/masterroutes/cityRoutes");
 const micromarketRoutes = require("./routes/masterroutes/micromarketRoutes");
@@ -39,6 +40,7 @@ const brokerRoutes = require("./routes/propertyusersroutes/brokerRoutes");
 
 // Authentication routes
 app.use("/api/auth", authRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 // Master admin routes
 app.use("/api/states", stateRoutes);
