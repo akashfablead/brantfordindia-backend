@@ -99,6 +99,8 @@ const propertySchema = new mongoose.Schema({
         enum: [0, 1], // 0: Removed, 1: Added
         default: 0,
     },
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now },
 }, { timestamps: true });
 
 module.exports = mongoose.model("Property", propertySchema);

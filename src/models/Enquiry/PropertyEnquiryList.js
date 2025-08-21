@@ -7,7 +7,9 @@ const propertyEnquiryListSchema = new mongoose.Schema({
     mobile: { type: String, required: true },
     address: { type: String, required: true },
     city: { type: mongoose.Schema.Types.ObjectId, ref: "City", required: true },
-    seatsReq: { type: Number, required: true }
+    seatsReq: { type: Number, required: true },
+    status: { type: String, enum: ["active", "closed"], default: "active" } // track active enquiries
+
 }, { timestamps: true });
 
 module.exports = mongoose.model("PropertyEnquiry", propertyEnquiryListSchema);

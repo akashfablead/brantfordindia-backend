@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { addProperty, editProperty, changeStatus, getAllProperties, getPropertyById, getPropertyBySlug, deleteProperty, deleteAvailableOption, deleteMeetingRoom, deleteConnectivity, getAllPropertiesfilter, getRecentlyAddedOfficeSpaces, toggleFavourite, getFavourites, getstatusProperties, getPropertiesByCitySlug, getPropertiesByMicromarketSlug, searchProperties, getSimilarProperties, getTopCitiesByPropertyType, toggleCompareProperty, getCompareProperties } = require("../controllers/propertyController");
+const { addProperty, editProperty, changeStatus, getAllProperties, getPropertyById, getPropertyBySlug, deleteProperty, deleteAvailableOption, deleteMeetingRoom, deleteConnectivity, getAllPropertiesfilter, getRecentlyAddedOfficeSpaces, toggleFavourite, getFavourites, getstatusProperties, getPropertiesByCitySlug, getPropertiesByMicromarketSlug, searchProperties, getSimilarProperties, getTopCitiesByPropertyType, toggleCompareProperty, getCompareProperties, getPropertiesByUser } = require("../controllers/propertyController");
 const { authenticateToken } = require("../middleware/authMiddleware");
 const optionalAuth = require("../middleware/optionalAuth");
 const createMulterUpload = require("../config/multer");
@@ -45,6 +45,9 @@ router.get("/micromarket-slug/:slug", optionalAuth, getPropertiesByMicromarketSl
 router.get("/", optionalAuth, getAllPropertiesfilter);
 router.get("/recently-added-office-spaces", optionalAuth, getRecentlyAddedOfficeSpaces);
 router.get("/search", optionalAuth, searchProperties);
+
+// Get properties created by the authenticated user
+router.get("/my-properties", authenticateToken, getPropertiesByUser);
 
 // all property in fronted
 router.get("/all", getAllProperties);

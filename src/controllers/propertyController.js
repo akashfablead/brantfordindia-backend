@@ -5,6 +5,7 @@ const PropertyType = require("../models/Master/PropertyType");
 const City = require("../models/Master/City");
 const Micromarket = require("../models/Master/Micromarket");
 const Locality = require("../models/Master/Locality");
+const PropertyEnquiryList = require("../models/Enquiry/PropertyEnquiryList");
 
 // 📌 Helper to build full URL
 // const getFullUrl = (req, filePath) => {
@@ -52,7 +53,6 @@ const formatAmenitiesWithFullUrl = (req, property) => {
 
     return formatted;
 };
-
 
 
 function parseArrayFields(reqBody, fieldNames) {
@@ -284,6 +284,72 @@ const changeStatus = async (req, res) => {
 
         res.json({ status: true, message: "Status updated successfully", property });
     } catch (error) {
+        res.status(500).json({ status: false, message: error.message });
+    }
+};
+
+// 📌 Get Properties by User (Authenticated)
+const getPropertiesByUser = async (req, res) => {
+    try {
+        const userId = req.user?._id || req.user?.id || req.user?.userId;
+
+        if (!userId) {
+            return res.status(401).json({
+                status: false,
+                message: "Unauthorized: User not authenticated",
+            });
+        }
+
+
+        // Fetch user properties
+        const properties = await Property.find({ createdBy: userId })
+            .populate("state city propertyType micromarket locality")
+            .populate("residentialUnitTypes.unitTypeid")
+            .populate({
+                path: "amenities.amenityid",
+                model: "Amenity",
+            })
+            .sort({ createdAt: -1 });
+
+        if (!properties.length) {
+            return res.status(200).json({
+                status: true,
+                message: "No properties found for this user",
+                properties: [],
+                activeEnquiries: 0,
+                totalListings: 0,
+                revenueGenerated: 0,
+            });
+        }
+
+        // Format properties
+        const formattedProperties = properties.map((property) =>
+            formatAmenitiesWithFullUrl(req, property)
+        );
+
+        // Total listings
+        const totalListings = properties.length;
+
+        const propertyIds = properties.map(p => p._id);
+        const activeEnquiries = await PropertyEnquiryList.countDocuments({
+            property: { $in: propertyIds },
+            status: "active",
+        });
+
+        // Revenue generated (assuming 'revenue' field exists on Property)
+        const revenueGenerated = properties.reduce((sum, prop) => sum + (prop.revenue || 0), 0);
+
+
+        res.status(200).json({
+            status: true,
+            message: "User properties fetched successfully",
+            properties: formattedProperties,
+            activeEnquiries,
+            totalListings,
+            revenueGenerated,
+        });
+    } catch (error) {
+        console.error("Error fetching user properties:", error);
         res.status(500).json({ status: false, message: error.message });
     }
 };
@@ -938,6 +1004,7 @@ module.exports = {
     getstatusProperties,
     getAllPropertiesfilter,
     getRecentlyAddedOfficeSpaces,
+    getPropertiesByUser,
     getAllProperties,
     getPropertyById,
     getPropertiesByCitySlug,

@@ -5,7 +5,7 @@ const { addPropertyEnquiry, getPropertyEnquiryById, deletePropertyEnquiry, getPr
 const createMulterUpload = require("../../config/multer");
 const upload = createMulterUpload("");
 
-router.post("/", authenticateToken, upload.none(), addPropertyEnquiry);
+router.post("/:id", authenticateToken, upload.none(), addPropertyEnquiry);
 router.get("/", getPropertyEnquiries);
 router.get("/:id", getPropertyEnquiryById);
 router.delete("/:id", authenticateToken, deletePropertyEnquiry);
