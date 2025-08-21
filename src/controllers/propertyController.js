@@ -779,7 +779,6 @@ const getFavourites = async (req, res) => {
     try {
         const userId = req.user?._id || req.user?.id || req.user?.userId;
 
-        // Fetch all properties where favouritestatus is 1
         const favourites = await Property.find({
             favouritestatus: 1,
         }).populate([
@@ -791,15 +790,35 @@ const getFavourites = async (req, res) => {
             { path: "amenities.amenityid", model: "Amenity" },
         ]);
 
+        const totalCount = favourites.length;
+
+        const privateOfficesCount = favourites.filter(
+            (fav) => fav.propertyType?.name && fav.propertyType?.name.includes("Private Office")
+        ).length;
+
+        const commercialCount = favourites.filter(
+            (fav) => fav.propertyType?.name && fav.propertyType?.name.includes("Commercial")
+        ).length;
+
+        // ✅ Fixed Featured count
+        const featuredCount = favourites.filter(
+            (fav) => fav.displayIn && fav.displayIn.includes("Featured")
+        ).length;
+
         res.status(200).json({
             status: true,
             message: "Favorites fetched successfully.",
+            total: totalCount,
+            privateOffices: privateOfficesCount,
+            commercial: commercialCount,
+            featured: featuredCount,
             favourites,
         });
     } catch (error) {
         res.status(500).json({ status: false, message: error.message });
     }
 };
+
 
 const searchProperties = async (req, res) => {
     try {

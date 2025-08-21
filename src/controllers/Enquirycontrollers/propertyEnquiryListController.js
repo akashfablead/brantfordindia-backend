@@ -6,18 +6,23 @@ const RECAPTCHA_SECRET = process.env.RECAPTCHA_SECRET;
 const addPropertyEnquiry = async (req, res) => {
     try {
         const { subject, firstName, lastName, mobile, address, city, seatsReq, recaptchaToken } = req.body;
+        const { id: propertyId } = req.params; // get property id from URL
 
-        // 🛑 1. Validate required fields
+        if (!propertyId) {
+            return res.status(400).json({ status: false, message: "Property ID is required in URL" });
+        }
+
+        // 🛑 Validate required fields
         if (!subject || !firstName || !lastName || !mobile) {
             return res.status(400).json({ status: false, message: "Missing required fields" });
         }
 
-        // 🛑 2. Check if same user submitted within last 24 hours
-        const timeLimit = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hours ago
+        // Check duplicate within 24 hours
+        const timeLimit = new Date(Date.now() - 24 * 60 * 60 * 1000);
         const existingEnquiry = await PropertyEnquiry.findOne({
+            property: propertyId,
             firstName: firstName.trim(),
             lastName: lastName.trim(),
-            subject: subject.trim(),
             mobile: mobile.trim(),
             createdAt: { $gte: timeLimit }
         });
@@ -25,11 +30,11 @@ const addPropertyEnquiry = async (req, res) => {
         if (existingEnquiry) {
             return res.status(400).json({
                 status: false,
-                message: "You can only submit one enquiry every 24 hours."
+                message: "You can only submit one enquiry for this property every 24 hours."
             });
         }
 
-        // ✅ 3. Verify reCAPTCHA
+        // ✅ Verify reCAPTCHA
         if (!recaptchaToken) {
             return res.status(400).json({ status: false, message: "reCAPTCHA token is required" });
         }
@@ -41,14 +46,15 @@ const addPropertyEnquiry = async (req, res) => {
             return res.status(400).json({ status: false, message: "Failed reCAPTCHA verification" });
         }
 
-        // ✅ 4. Save enquiry
+        // ✅ Save enquiry
         const enquiry = new PropertyEnquiry({
+            property: propertyId,
             subject: subject.trim(),
             firstName: firstName.trim(),
             lastName: lastName.trim(),
             mobile: mobile.trim(),
             address: address?.trim() || "",
-            city: city?.trim() || "",
+            city: city || null,
             seatsReq: seatsReq || null
         });
 
@@ -66,19 +72,37 @@ const addPropertyEnquiry = async (req, res) => {
     }
 };
 
-
 const getPropertyEnquiries = async (req, res) => {
     try {
-        const enquiries = await PropertyEnquiry.find().populate("city");
-        res.json({ status: true, data: enquiries });
+        const userId = req.user.id; // ✅ user id from auth middleware
+
+        const enquiries = await PropertyEnquiry.find({ user: userId }) // only enquiries created by this user
+            .populate({
+                path: "property",
+                match: { createdBy: userId }, // only properties owned by this user
+                populate: { path: "city" }
+            })
+            .populate("city")
+            .populate("user")
+            .sort({ createdAt: -1 });
+
+        // 🔎 Filter out null properties (not owned by this user)
+        const filteredEnquiries = enquiries.filter(enq => enq.property !== null);
+
+        res.json({ status: true, message: "Enquiries fetched successfully", data: filteredEnquiries });
+
     } catch (error) {
         res.status(500).json({ status: false, message: error.message });
     }
 };
 
+
 const getPropertyEnquiryById = async (req, res) => {
     try {
-        const enquiry = await PropertyEnquiry.findById(req.params.id).populate("city");
+        const enquiry = await PropertyEnquiry.findById(req.params.id)
+            .populate("city")
+            .populate("property");
+
         if (!enquiry) return res.status(404).json({ status: false, message: "Enquiry not found" });
         res.json({ status: true, data: enquiry });
     } catch (error) {
