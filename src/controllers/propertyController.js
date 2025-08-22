@@ -148,6 +148,15 @@ const injectFavouriteStatus = async (req, properties) => {
     });
 };
 
+const injectCompareStatus = async (properties) => {
+    return properties.map(p => {
+        const obj = p.toObject ? p.toObject() : p;
+        obj.compareStatus = p.compareStatus || 0; // Default to 0 if not set
+        return obj;
+    });
+};
+
+
 const addProperty = async (req, res) => {
     try {
         const {
@@ -504,7 +513,7 @@ const getRecentlyAddedOfficeSpaces = async (req, res) => {
 
         // If logged in → exclude own properties
         const userId = req.user?._id || req.user?.id || req.user?.userId;
-        if (userId) {
+        if (userId && mongoose.Types.ObjectId.isValid(userId)) {
             filter.createdBy = { $ne: new mongoose.Types.ObjectId(userId) };
         }
 
@@ -514,21 +523,29 @@ const getRecentlyAddedOfficeSpaces = async (req, res) => {
             .populate({ path: "amenities.amenityid", model: "Amenity" })
             .sort({ createdAt: -1 })
             .limit(10)
-            .lean(); // ✅ use lean so we can modify objects
+            .lean();
 
-        // ✅ Inject favourite status in each property
-        if (properties.length > 0) {
-            for (let i = 0; i < properties.length; i++) {
-                let favouritestatus = 0;
-                if (userId && mongoose.Types.ObjectId.isValid(userId)) {
-                    const fav = await Favourites.findOne({
-                        userId,
-                        propertyId: properties[i]._id
-                    }).lean();
-                    if (fav) favouritestatus = 1;
-                }
-                properties[i].favouritestatus = favouritestatus;
-            }
+        if (properties.length > 0 && userId && mongoose.Types.ObjectId.isValid(userId)) {
+            // ✅ Get all propertyIds from fetched properties
+            const propertyIds = properties.map(p => p._id);
+
+            // ✅ Fetch all favourites in one query
+            const favourites = await Favourites.find({
+                userId: new mongoose.Types.ObjectId(userId),
+                propertyId: { $in: propertyIds }
+            }).lean();
+
+            // ✅ Convert to a Set for fast lookup
+            const favouriteSet = new Set(favourites.map(f => String(f.propertyId)));
+
+            // ✅ Inject favouritestatus
+            properties = properties.map(p => ({
+                ...p,
+                favouritestatus: favouriteSet.has(String(p._id)) ? 1 : 0
+            }));
+        } else {
+            // if no user → mark all as not favourite
+            properties = properties.map(p => ({ ...p, favouritestatus: 0 }));
         }
 
         res.json({
@@ -537,9 +554,11 @@ const getRecentlyAddedOfficeSpaces = async (req, res) => {
             properties
         });
     } catch (error) {
+        console.error("Error fetching recently added office spaces:", error);
         res.status(500).json({ status: false, message: error.message });
     }
 };
+
 
 const getstatusProperties = async (req, res) => {
     try {
