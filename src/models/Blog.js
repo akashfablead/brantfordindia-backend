@@ -17,7 +17,9 @@ const blogSchema = new mongoose.Schema(
 
         status: { type: String, enum: ["active", "inactive"], default: "active" },
         rssFeed: { type: String, trim: true },
-        createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }
+        createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        createdAt: { type: Date, default: Date.now },
+        updatedAt: { type: Date, default: Date.now }
     },
     { timestamps: true }
 );

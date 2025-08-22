@@ -445,6 +445,7 @@ const getAllProperties = async (req, res) => {
             })
             .sort({ createdAt: -1 });
 
+        // Inject favourite and compare status
         const userId = req.user?._id || req.user?.id || req.user?.userId;
         let favIds = [];
         if (userId) {
@@ -455,14 +456,20 @@ const getAllProperties = async (req, res) => {
         const finalProps = properties.map(p => {
             const obj = formatAmenitiesWithFullUrl(req, p.toObject());
             obj.favouritestatus = favIds.includes(p._id.toString()) ? 1 : 0;
+            obj.compareStatus = p.compareStatus || 0; // Inject compareStatus
             return obj;
         });
 
-        res.json({ status: true, message: "Properties fetched successfully", properties: finalProps });
+        res.json({
+            status: true,
+            message: "Properties fetched successfully",
+            properties: finalProps
+        });
     } catch (error) {
         res.status(500).json({ status: false, message: error.message });
     }
 };
+
 
 
 
@@ -525,7 +532,7 @@ const getRecentlyAddedOfficeSpaces = async (req, res) => {
             .limit(10)
             .lean();
 
-        if (properties.length > 0 && userId && mongoose.Types.ObjectId.isValid(userId)) {
+        if (properties.length > 0) {
             // ✅ Get all propertyIds from fetched properties
             const propertyIds = properties.map(p => p._id);
 
@@ -538,14 +545,19 @@ const getRecentlyAddedOfficeSpaces = async (req, res) => {
             // ✅ Convert to a Set for fast lookup
             const favouriteSet = new Set(favourites.map(f => String(f.propertyId)));
 
-            // ✅ Inject favouritestatus
+            // ✅ Inject favouritestatus and compareStatus
             properties = properties.map(p => ({
                 ...p,
-                favouritestatus: favouriteSet.has(String(p._id)) ? 1 : 0
+                favouritestatus: favouriteSet.has(String(p._id)) ? 1 : 0,
+                compareStatus: p.compareStatus || 0 // Inject compareStatus
             }));
         } else {
-            // if no user → mark all as not favourite
-            properties = properties.map(p => ({ ...p, favouritestatus: 0 }));
+            // If no user or no properties → mark all as not favourite and not in compare list
+            properties = properties.map(p => ({
+                ...p,
+                favouritestatus: 0,
+                compareStatus: 0
+            }));
         }
 
         res.json({
@@ -558,6 +570,7 @@ const getRecentlyAddedOfficeSpaces = async (req, res) => {
         res.status(500).json({ status: false, message: error.message });
     }
 };
+
 
 
 const getstatusProperties = async (req, res) => {
@@ -711,9 +724,11 @@ const getPropertyById = async (req, res) => {
                 model: "Amenity"
             });
 
-        if (!property) return res.status(404).json({ status: false, message: "Property not found" });
+        if (!property) {
+            return res.status(404).json({ status: false, message: "Property not found" });
+        }
 
-        // ✅ check if favourite for this user
+        // Check if favourite for this user
         let favouritestatus = 0;
         const userId = req.user?._id || req.user?.id || req.user?.userId;
         if (userId) {
@@ -723,8 +738,13 @@ const getPropertyById = async (req, res) => {
 
         property = formatAmenitiesWithFullUrl(req, property.toObject());
         property.favouritestatus = favouritestatus;
+        property.compareStatus = property.compareStatus || 0; // Inject compareStatus
 
-        res.json({ status: true, message: "Property fetched successfully", property });
+        res.json({
+            status: true,
+            message: "Property fetched successfully",
+            property
+        });
     } catch (error) {
         res.status(500).json({ status: false, message: error.message });
     }
@@ -736,8 +756,6 @@ const getPropertyById = async (req, res) => {
 const getPropertyBySlug = async (req, res) => {
     try {
         const { slug } = req.params;
-
-        // ✅ lean() use kiya
         let property = await Property.findOne({ slug, status: "Approved" })
             .populate("state city propertyType micromarket locality")
             .populate("residentialUnitTypes.unitTypeid")
@@ -745,13 +763,16 @@ const getPropertyBySlug = async (req, res) => {
             .lean();
 
         if (!property) {
-            return res.status(404).json({ status: false, message: "Property not found or not approved" });
+            return res.status(404).json({
+                status: false,
+                message: "Property not found or not approved"
+            });
         }
 
-        // ✅ Amenities full url
+        // Format amenities full URL
         property = formatAmenitiesWithFullUrl(req, property);
 
-        // ✅ Favourite status inject
+        // Favourite status inject
         const userId = req.user?._id || req.user?.id || req.user?.userId;
         let favouritestatus = 0;
         if (userId && mongoose.Types.ObjectId.isValid(userId)) {
@@ -760,17 +781,18 @@ const getPropertyBySlug = async (req, res) => {
         }
 
         property.favouritestatus = favouritestatus;
+        property.compareStatus = property.compareStatus || 0; // Inject compareStatus
 
         res.json({
             status: true,
             message: "Property fetched successfully",
             property
         });
-
     } catch (error) {
         res.status(500).json({ status: false, message: error.message });
     }
 };
+
 
 
 // const getPropertyBySlug = async (req, res) => {
@@ -869,9 +891,10 @@ const getPropertyBySlug = async (req, res) => {
 const getPropertiesByCitySlug = async (req, res) => {
     try {
         const { slug } = req.params;
-
         const city = await City.findOne({ slug });
-        if (!city) return res.status(404).json({ status: false, message: "City not found" });
+        if (!city) {
+            return res.status(404).json({ status: false, message: "City not found" });
+        }
 
         let properties = await Property.find({ city: city._id })
             .populate("state city propertyType micromarket locality")
@@ -882,13 +905,31 @@ const getPropertiesByCitySlug = async (req, res) => {
             })
             .sort({ createdAt: -1 });
 
-        properties = await injectFavouriteStatus(req, properties);
+        // Inject favourite and compare status
+        const userId = req.user?._id || req.user?.id || req.user?.userId;
+        let favIds = [];
+        if (userId) {
+            const favs = await Favourites.find({ userId }).select("propertyId");
+            favIds = favs.map(f => f.propertyId.toString());
+        }
 
-        res.json({ status: true, message: "Properties fetched successfully", properties });
+        properties = properties.map(p => {
+            const obj = formatAmenitiesWithFullUrl(req, p.toObject());
+            obj.favouritestatus = favIds.includes(p._id.toString()) ? 1 : 0;
+            obj.compareStatus = p.compareStatus || 0; // Inject compareStatus
+            return obj;
+        });
+
+        res.json({
+            status: true,
+            message: "Properties fetched successfully",
+            properties
+        });
     } catch (error) {
         res.status(500).json({ status: false, message: error.message });
     }
 };
+
 
 
 // 📌 Get properties by PropertyMicromarketSlug
@@ -946,9 +987,10 @@ const getPropertiesByCitySlug = async (req, res) => {
 const getPropertiesByMicromarketSlug = async (req, res) => {
     try {
         const { slug } = req.params;
-
         const micromarket = await Micromarket.findOne({ slug });
-        if (!micromarket) return res.status(404).json({ status: false, message: "Micromarket not found" });
+        if (!micromarket) {
+            return res.status(404).json({ status: false, message: "Micromarket not found" });
+        }
 
         let properties = await Property.find({ micromarket: micromarket._id })
             .populate("state city propertyType micromarket locality")
@@ -959,13 +1001,31 @@ const getPropertiesByMicromarketSlug = async (req, res) => {
             })
             .sort({ createdAt: -1 });
 
-        properties = await injectFavouriteStatus(req, properties);
+        // Inject favourite and compare status
+        const userId = req.user?._id || req.user?.id || req.user?.userId;
+        let favIds = [];
+        if (userId) {
+            const favs = await Favourites.find({ userId }).select("propertyId");
+            favIds = favs.map(f => f.propertyId.toString());
+        }
 
-        res.json({ status: true, message: "Properties fetched successfully", properties });
+        properties = properties.map(p => {
+            const obj = formatAmenitiesWithFullUrl(req, p.toObject());
+            obj.favouritestatus = favIds.includes(p._id.toString()) ? 1 : 0;
+            obj.compareStatus = p.compareStatus || 0; // Inject compareStatus
+            return obj;
+        });
+
+        res.json({
+            status: true,
+            message: "Properties fetched successfully",
+            properties
+        });
     } catch (error) {
         res.status(500).json({ status: false, message: error.message });
     }
 };
+
 
 
 
@@ -1264,17 +1324,14 @@ const searchProperties = async (req, res) => {
 const getSimilarProperties = async (req, res) => {
     try {
         const { id } = req.params;
-
-        // ✅ Find the base property
         const baseProperty = await Property.findById(id);
         if (!baseProperty) {
             return res.status(404).json({ status: false, message: "Property not found" });
         }
 
-        // ✅ Build filter for similar properties
         const filter = {
-            _id: { $ne: baseProperty._id }, // exclude current property
-            status: "Approved", // only approved properties
+            _id: { $ne: baseProperty._id },
+            status: "Approved",
             propertyType: baseProperty.propertyType,
             city: baseProperty.city,
             listingType: baseProperty.listingType
@@ -1287,11 +1344,10 @@ const getSimilarProperties = async (req, res) => {
                 path: "amenities.amenityid",
                 model: "Amenity"
             })
-            .sort({ createdAt: -1 }) // newest similar first
+            .sort({ createdAt: -1 })
             .limit(10);
 
-
-        // ✅ Inject favourite status for each property
+        // Inject favourite and compare status
         const userId = req.user?._id || req.user?.id || req.user?.userId;
         if (userId && mongoose.Types.ObjectId.isValid(userId)) {
             const favs = await Favourites.find({ userId }).select("propertyId");
@@ -1301,18 +1357,21 @@ const getSimilarProperties = async (req, res) => {
                 const prop = p.toObject ? p.toObject() : p;
                 return {
                     ...prop,
-                    favouritestatus: favIds.includes(p._id.toString()) ? 1 : 0
+                    favouritestatus: favIds.includes(p._id.toString()) ? 1 : 0,
+                    compareStatus: p.compareStatus || 0 // Inject compareStatus
                 };
             });
         } else {
-            // guest user → set all favouriteStatus = 0
             similarProperties = similarProperties.map(p => {
                 const prop = p.toObject ? p.toObject() : p;
-                return { ...prop, favouritestatus: 0 };
+                return {
+                    ...prop,
+                    favouritestatus: 0,
+                    compareStatus: p.compareStatus || 0 // Inject compareStatus
+                };
             });
         }
 
-        // ✅ Proper response
         res.status(200).json({
             status: true,
             message: "Similar properties fetched successfully",
@@ -1382,7 +1441,6 @@ const getTopCitiesByPropertyType = async (req, res) => {
 const toggleCompareProperty = async (req, res) => {
     try {
         const { propertyId } = req.params;
-
         let property = await Property.findById(propertyId);
         if (!property) {
             return res.status(404).json({ message: "Property not found" });
@@ -1396,26 +1454,42 @@ const toggleCompareProperty = async (req, res) => {
             message: property.compareStatus === 1
                 ? "Property added to compare list"
                 : "Property removed from compare list",
-            property,
+            property
         });
     } catch (error) {
         res.status(500).json({ message: "Server error", error: error.message });
     }
 };
+
 
 const getCompareProperties = async (req, res) => {
     try {
         const properties = await Property.find({ compareStatus: 1 })
             .populate("city state propertyType micromarket locality");
 
+        // Inject favourite status
+        const userId = req.user?._id || req.user?.id || req.user?.userId;
+        let favIds = [];
+        if (userId) {
+            const favs = await Favourites.find({ userId }).select("propertyId");
+            favIds = favs.map(f => f.propertyId.toString());
+        }
+
+        const compareProperties = properties.map(p => {
+            const obj = formatAmenitiesWithFullUrl(req, p.toObject());
+            obj.favouritestatus = favIds.includes(p._id.toString()) ? 1 : 0;
+            return obj;
+        });
+
         res.status(200).json({
             message: "Compare properties fetched successfully",
-            properties,
+            properties: compareProperties
         });
     } catch (error) {
         res.status(500).json({ message: "Server error", error: error.message });
     }
 };
+
 
 module.exports = {
     addProperty,

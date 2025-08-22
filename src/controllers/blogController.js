@@ -198,11 +198,95 @@ const deleteBlog = async (req, res) => {
     }
 };
 
+// Get Latest Posts (limited fields)
+const getLatestPosts = async (req, res) => {
+    try {
+        const { id } = req.query; // id ko query se lo (ya params se)
+        const limit = parseInt(req.query.limit) || 5;
+
+        // Filter banate hain
+        const filter = {};
+        if (id) {
+            filter._id = { $ne: id }; // is id ko exclude karna hai
+        }
+
+        const latestPosts = await Blog.find(filter)
+            .sort({ createdAt: -1 })
+            .limit(limit)
+            .populate("category", "name")
+            .populate("tag", "name")
+            .populate("createdBy", "name");
+
+        const simplifiedPosts = latestPosts.map(post => ({
+            title: post.title,
+            slug: post.slug,
+            shortDescription: post.shortDescription,
+            image: post.image ? `${process.env.BACKEND_URL}${post.image}` : null,
+            category: post.category ? post.category.name : null,
+            tag: post.tag ? post.tag.name : null,
+            createdBy: post.createdBy ? post.createdBy.name : null,
+            createdAt: post.createdAt,
+        }));
+
+        res.json({
+            status: true,
+            message: "Latest posts fetched successfully",
+            posts: simplifiedPosts,
+        });
+    } catch (error) {
+        res.status(500).json({ status: false, message: error.message });
+    }
+};
+
+// Get Related Articles
+const getRelatedArticles = async (req, res) => {
+    try {
+        const { id } = req.params; // Target blog post ID
+        const limit = parseInt(req.query.limit) || 5; // Default to 5 related articles
+        const targetBlog = await Blog.findById(id).populate("tag", "name");
+
+        if (!targetBlog) {
+            return res.status(404).json({ status: false, message: "Target blog post not found" });
+        }
+
+        const relatedBlogs = await Blog.find({ tag: targetBlog.tag })
+            .sort({ createdAt: -1 }) // Sort by creation date in descending order
+            .limit(limit) // Limit the number of related articles
+            .populate("category", "name") // Populate category name
+            .populate("tag", "name") // Populate tag name
+            .populate("createdBy", "name"); // Populate only the name of the creator
+
+        // Map the results to include only necessary fields
+        const simplifiedRelatedBlogs = relatedBlogs.map(post => ({
+            _id: post._id,
+            title: post.title,
+            slug: post.slug,
+            shortDescription: post.shortDescription,
+            image: post.image ? `${process.env.BACKEND_URL}${post.image}` : null,
+            category: post.category ? post.category.name : null,
+            tag: post.tag ? post.tag.name : null,
+            createdBy: post.createdBy ? post.createdBy.name : null,
+            createdAt: post.createdAt,
+        }))
+
+        res.json({
+            status: true,
+            message: "Related articles fetched successfully",
+            relatedArticles: simplifiedRelatedBlogs,
+        });
+    } catch (error) {
+        res.status(500).json({ status: false, message: error.message });
+    }
+};
+
+
 module.exports = {
     addBlog,
     editBlog,
     getAllBlogs,
     getBlogById,
     getBlogBySlug,
-    deleteBlog
+    deleteBlog,
+    getLatestPosts,
+    getRelatedArticles
 };
