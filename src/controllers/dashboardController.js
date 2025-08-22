@@ -83,6 +83,7 @@ const getDashboardStatsadmin = async (req, res) => {
 
         res.json({
             success: true,
+            message: "Dashboard stats fetched successfully",
             data: {
                 totalProperty,
                 totalRentProperty,

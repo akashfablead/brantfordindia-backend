@@ -94,11 +94,11 @@ const propertySchema = new mongoose.Schema({
     },
     status: { type: String, enum: ["Pending", "Approved", "Rejected"], default: "Pending" },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    favouritestatus: {
-        type: Number,
-        enum: [0, 1], // 0: Removed, 1: Added
-        default: 0,
-    },
+    // favouritestatus: {
+    //     type: Number,
+    //     enum: [0, 1], // 0: Removed, 1: Added
+    //     default: 0,
+    // },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
 }, { timestamps: true });

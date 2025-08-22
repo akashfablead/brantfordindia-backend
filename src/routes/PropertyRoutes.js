@@ -50,8 +50,8 @@ router.get("/search", optionalAuth, searchProperties);
 router.get("/my-properties", authenticateToken, getPropertiesByUser);
 
 // all property in fronted
-router.get("/all", getAllProperties);
-router.get("/:id", getPropertyById);
+router.get("/all", optionalAuth, getAllProperties);
+router.get("/:id",optionalAuth, getPropertyById);
 router.get("/similar/:id", getSimilarProperties);
 router.get("/top-cities/:propertyTypeId", getTopCitiesByPropertyType);
 
