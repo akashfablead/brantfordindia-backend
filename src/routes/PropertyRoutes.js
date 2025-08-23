@@ -34,7 +34,6 @@ router.post("/compare/:propertyId", authenticateToken, upload.none(), toggleComp
 // Get compare properties
 router.get("/compare", authenticateToken, getCompareProperties);
 
-
 router.post("/status/:id", authenticateToken, upload.none(), changeStatus);
 router.get("/status", optionalAuth, getstatusProperties);
 router.get("/slug/:slug", optionalAuth, getPropertyBySlug);
