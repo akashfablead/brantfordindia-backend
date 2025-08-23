@@ -270,7 +270,8 @@ const addProperty = async (req, res) => {
         // Save the property
         const savedProperty = await newProperty.save();
         const populatedProperty = await Property.findById(savedProperty._id)
-            .populate("state city propertyType micromarket locality");
+            .populate("state city propertyType micromarket locality")
+            .lean(); // Use lean() for plain JS objects
 
         res.status(201).json({
             status: true,
@@ -367,7 +368,9 @@ const getPropertiesByUser = async (req, res) => {
                 path: "amenities.amenityid",
                 model: "Amenity",
             })
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .lean(); // Use lean() for plain JS objects
+
 
         if (!properties.length) {
             return res.status(200).json({
@@ -443,7 +446,8 @@ const getAllProperties = async (req, res) => {
                 path: "amenities.amenityid",
                 model: "Amenity"
             })
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .lean(); // Use lean() for plain JS objects;
 
         // Inject favourite and compare status
         const userId = req.user?._id || req.user?.id || req.user?.userId;
@@ -596,7 +600,8 @@ const getstatusProperties = async (req, res) => {
             .populate({
                 path: "amenities.amenityid",
                 model: "Amenity"
-            });
+            })
+            .lean(); // Use lean() for plain JS objects;
 
         filtersperties = await injectFavouriteStatus(req, properties);
 
@@ -675,7 +680,8 @@ const getAllPropertiesfilter = async (req, res) => {
                 path: "amenities.amenityid",
                 model: "Amenity"
             })
-            .sort(sort);
+            .sort(sort)
+            .lean(); // Use lean() for plain JS objects;
 
         properties = properties.map(p => formatAmenitiesWithFullUrl(req, p));
 
@@ -1345,7 +1351,8 @@ const getSimilarProperties = async (req, res) => {
                 model: "Amenity"
             })
             .sort({ createdAt: -1 })
-            .limit(10);
+            .limit(10)
+            .lean(); // Use lean() for plain JS objects;
 
         // Inject favourite and compare status
         const userId = req.user?._id || req.user?.id || req.user?.userId;
@@ -1465,7 +1472,8 @@ const toggleCompareProperty = async (req, res) => {
 const getCompareProperties = async (req, res) => {
     try {
         const properties = await Property.find({ compareStatus: 1 })
-            .populate("city state propertyType micromarket locality");
+            .populate("city state propertyType micromarket locality")
+            .lean(); // Use lean() for plain JS objects;
 
         // Inject favourite status
         const userId = req.user?._id || req.user?.id || req.user?.userId;

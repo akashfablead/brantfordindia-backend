@@ -52,7 +52,7 @@ router.get("/my-properties", authenticateToken, getPropertiesByUser);
 // all property in fronted
 router.get("/all", optionalAuth, getAllProperties);
 router.get("/:id", optionalAuth, getPropertyById);
-router.get("/similar/:id", getSimilarProperties);
+router.get("/similar/:id", optionalAuth, getSimilarProperties);
 router.get("/top-cities/:propertyTypeId", getTopCitiesByPropertyType);
 
 
