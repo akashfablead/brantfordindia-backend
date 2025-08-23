@@ -447,7 +447,6 @@ const getAllProperties = async (req, res) => {
                 model: "Amenity"
             })
             .sort({ createdAt: -1 })
-            .lean(); // Use lean() for plain JS objects;
 
         // Inject favourite and compare status
         const userId = req.user?._id || req.user?.id || req.user?.userId;
@@ -1396,7 +1395,6 @@ const getSimilarProperties = async (req, res) => {
 const getTopCitiesByPropertyType = async (req, res) => {
     try {
         const { propertyTypeId } = req.params;
-
         let matchStage = { status: "Approved" };
 
         if (propertyTypeId !== "all") {
@@ -1414,7 +1412,7 @@ const getTopCitiesByPropertyType = async (req, res) => {
             { $limit: 10 },
             {
                 $lookup: {
-                    from: "cities", // MongoDB collection name for City model
+                    from: "cities",
                     localField: "_id",
                     foreignField: "_id",
                     as: "cityDetails"
@@ -1426,23 +1424,31 @@ const getTopCitiesByPropertyType = async (req, res) => {
                     _id: 0,
                     cityId: "$cityDetails._id",
                     cityName: "$cityDetails.name",
+                    cityImage: "$cityDetails.image",
                     propertyCount: 1
                 }
             }
         ]);
+
+        // Construct full image URLs
+        const citiesWithFullPath = topCities.map(city => ({
+            ...city,
+            cityImage: city.cityImage ? `${process.env.BACKEND_URL}${city.cityImage}` : null
+        }));
 
         res.status(200).json({
             status: true,
             message: propertyTypeId === "all"
                 ? "Top cities (all property types) fetched successfully"
                 : "Top cities fetched successfully",
-            topCities
+            topCities: citiesWithFullPath
         });
     } catch (error) {
         console.error("Error in getTopCitiesByPropertyType:", error);
         res.status(500).json({ status: false, message: error.message });
     }
 };
+
 
 // 📌 Compare Properties
 const toggleCompareProperty = async (req, res) => {
@@ -1473,7 +1479,7 @@ const getCompareProperties = async (req, res) => {
     try {
         const properties = await Property.find({ compareStatus: 1 })
             .populate("city state propertyType micromarket locality")
-            .lean(); // Use lean() for plain JS objects;
+            ; // Use lean() for plain JS objects;
 
         // Inject favourite status
         const userId = req.user?._id || req.user?.id || req.user?.userId;

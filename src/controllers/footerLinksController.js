@@ -181,25 +181,73 @@ const editFooterLink = async (req, res) => {
 
 
 
+// const getFooterLinks = async (req, res) => {
+//     try {
+//         const footerLinks = await FooterLink.find()
+//             .populate("propertyType", "name")
+//             .populate("city", "name image")
+//             .sort({ createdAt: -1 });
+
+//         const updatedLinks = footerLinks.map(link => ({
+//             ...link.toObject(),
+//             galleryImages: link.galleryImages.map(img => `${process.env.BACKEND_URL}${img}`)
+//         }));
+
+//         res.json({ status: true, message: "Footer links fetched successfully", data: updatedLinks });
+//     } catch (err) {
+//         res.status(500).json({ status: false, message: err.message });
+//     }
+// };
+
+// Get by ID
+
 const getFooterLinks = async (req, res) => {
     try {
         const footerLinks = await FooterLink.find()
             .populate("propertyType", "name")
-            .populate("city", "name")
+            .populate("city", "name image")
             .sort({ createdAt: -1 });
 
-        const updatedLinks = footerLinks.map(link => ({
-            ...link.toObject(),
-            galleryImages: link.galleryImages.map(img => `${process.env.BACKEND_URL}${img}`)
-        }));
+        const updatedLinks = footerLinks.map(link => {
+            const linkObject = link.toObject();
 
-        res.json({ status: true, message: "Footer links fetched successfully", data: updatedLinks });
+            // Handle galleryImages
+            const galleryImages = linkObject.galleryImages || [];
+            const updatedGalleryImages = galleryImages.map(img =>
+                `${process.env.BACKEND_URL}${img.startsWith('/') ? img : `/${img}`}`
+            );
+
+            // Handle city.image
+            let updatedCity = null;
+            if (linkObject.city) {
+                updatedCity = {
+                    ...linkObject.city,
+                    image: linkObject.city.image
+                        ? `${process.env.BACKEND_URL}${linkObject.city.image.startsWith('/') ? linkObject.city.image : `/${linkObject.city.image}`}`
+                        : null
+                };
+            }
+
+            return {
+                ...linkObject,
+                galleryImages: updatedGalleryImages,
+                city: updatedCity
+            };
+        });
+
+        res.json({
+            status: true,
+            message: "Footer links fetched successfully",
+            data: updatedLinks
+        });
     } catch (err) {
-        res.status(500).json({ status: false, message: err.message });
+        res.status(500).json({
+            status: false,
+            message: err.message
+        });
     }
 };
 
-// Get by ID
 const getFooterLinkById = async (req, res) => {
     try {
         const footerLink = await FooterLink.findById(req.params.id)
