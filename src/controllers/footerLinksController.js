@@ -3,80 +3,6 @@ const slugify = require("slugify");
 const PropertyType = require("../models/Master/PropertyType");
 const City = require("../models/Master/City");
 
-
-// without auto ganret title
-
-// // Add
-// const addFooterLink = async (req, res) => {
-//     try {
-//         const data = req.body;
-
-//         // Generate slug automatically
-//         const generatedSlug = data.slug
-//             ? slugify(data.slug, { lower: true, strict: true })
-//             : slugify(data.title, { lower: true, strict: true });
-//         data.slug = generatedSlug;
-
-//         // Handle multiple uploaded files
-//         if (req.files && req.files.galleryImages) {
-//             data.galleryImages = req.files.galleryImages.map(file => `/${file.path.replace(/\\/g, '/')}`);
-//         }
-
-//         // Ensure galleryUrls is always an array
-//         if (data.galleryUrls && !Array.isArray(data.galleryUrls)) {
-//             data.galleryUrls = [data.galleryUrls];
-//         }
-
-//         const footerLink = new FooterLink(data);
-//         await footerLink.save();
-
-//         res.json({ status: true, message: "Footer link added", data: footerLink });
-//     } catch (err) {
-//         if (err.code === 11000 && err.keyValue?.slug) {
-//             return res.status(400).json({ status: false, message: `Slug "${err.keyValue.slug}" already exists.` });
-//         }
-//         res.status(500).json({ status: false, message: err.message });
-//     }
-// };
-
-// // Edit
-// const editFooterLink = async (req, res) => {
-//     try {
-//         const { id } = req.params;
-//         const data = req.body;
-
-//         // Auto-generate slug if not provided
-//         if (data.title || data.slug) {
-//             const generatedSlug = data.slug
-//                 ? slugify(data.slug, { lower: true, strict: true })
-//                 : slugify(data.title, { lower: true, strict: true });
-//             data.slug = generatedSlug;
-//         }
-
-//         if (req.files && req.files.galleryImages) {
-//             data.galleryImages = req.files.galleryImages.map(file => `/${file.path.replace(/\\/g, '/')}`);
-//         }
-
-//         if (data.galleryUrls && !Array.isArray(data.galleryUrls)) {
-//             data.galleryUrls = [data.galleryUrls];
-//         }
-
-//         const footerLink = await FooterLink.findByIdAndUpdate(id, data, { new: true, runValidators: true });
-//         if (!footerLink) return res.status(404).json({ status: false, message: "Not found" });
-
-//         res.json({ status: true, message: "Footer link updated", data: footerLink });
-//     } catch (err) {
-//         if (err.code === 11000 && err.keyValue?.slug) {
-//             return res.status(400).json({ status: false, message: `Slug "${err.keyValue.slug}" already exists.` });
-//         }
-//         res.status(500).json({ status: false, message: err.message });
-//     }
-// };
-
-
-// Get All
-
-
 // Add
 const addFooterLink = async (req, res) => {
     try {
@@ -299,11 +225,80 @@ const deleteFooterLink = async (req, res) => {
     }
 };
 
+const getFooterLinksByPropertyType = async (req, res) => {
+    try {
+        const footerLinks = await FooterLink.find()
+            .populate("propertyType", "name")
+            .populate("city", "name image")
+            .sort({ createdAt: -1 })
+            .lean();
+
+        // Group by propertyType -> then by city
+        const grouped = {};
+
+        footerLinks.forEach(link => {
+            if (!link.propertyType || !link.city) return;
+
+            const typeName = link.propertyType.name;
+            const cityName = link.city.name;
+
+            if (!grouped[typeName]) {
+                grouped[typeName] = {};
+            }
+            if (!grouped[typeName][cityName]) {
+                grouped[typeName][cityName] = [];
+            }
+
+            // Custom title override
+            let newTitle = link.title;
+            if (typeName.toLowerCase() === "coworking") {
+                newTitle = "Coworking office space";
+            }
+
+            grouped[typeName][cityName].push({
+                _id: link._id,
+                propertyType: link.propertyType,
+                city: link.city,
+                title: newTitle,
+                slug: link.slug,
+                createdAt: link.createdAt,
+                updatedAt: link.updatedAt
+            });
+        });
+
+        // Final formatted result
+        const finalResult = {};
+
+        Object.entries(grouped).forEach(([typeName, cities]) => {
+            // Convert city object -> array with count
+            let cityArray = Object.entries(cities).map(([cityName, items]) => ({
+                cityName,
+                count: items.length,
+                items
+            }));
+
+            // Sort by count desc and keep top 5
+            cityArray = cityArray.sort((a, b) => b.count - a.count).slice(0, 5);
+
+            finalResult[typeName] = cityArray;
+        });
+
+        res.json({
+            status: true,
+            message: "Footer links grouped by property type & city (top 5 per type)",
+            data: finalResult
+        });
+    } catch (err) {
+        res.status(500).json({ status: false, message: err.message });
+    }
+};
+
 module.exports = {
     addFooterLink,
     editFooterLink,
     getFooterLinks,
     getFooterLinkById,
     getFooterLinkBySlug,
-    deleteFooterLink
+    deleteFooterLink,
+    getFooterLinksByPropertyType
 };

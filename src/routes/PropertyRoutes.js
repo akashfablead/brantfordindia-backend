@@ -54,5 +54,4 @@ router.get("/:id", optionalAuth, getPropertyById);
 router.get("/similar/:id", optionalAuth, getSimilarProperties);
 router.get("/top-cities/:propertyTypeId", getTopCitiesByPropertyType);
 
-
 module.exports = router;
