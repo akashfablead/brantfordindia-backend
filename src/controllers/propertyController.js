@@ -921,8 +921,8 @@ const getPropertiesByCitySlug = async (req, res) => {
         console.log("➡️ Properties found:", properties.length);
 
         if (!properties || properties.length === 0) {
-            return res.status(404).json({
-                status: false,
+            return res.status(200).json({
+                status: true,
                 message: `No properties found for city slug: ${slug}`,
             });
         }
@@ -990,18 +990,24 @@ const getPropertiesByCitySlug = async (req, res) => {
 const getPropertiesByMicromarketSlug = async (req, res) => {
     try {
         const { slug } = req.params;
-        const micromarket = await Micromarket.findOne({ slug });
 
-        if (!micromarket) {
-            return res.status(404).json({ status: false, message: "Micromarket not found" });
-        }
-
-        let properties = await Property.find({ micromarket: micromarket._id, status: "Approved" })
+        // ✅ Directly find properties by PropertyMicromarketSlug
+        let properties = await Property.find({
+            PropertyMicromarketSlug: slug,  // Target this field
+            status: "Approved"
+        })
             .populate("state city propertyType micromarket locality")
             .populate("residentialUnitTypes.unitTypeid")
             .populate({ path: "amenities.amenityid", model: "Amenity" })
             .sort({ createdAt: -1 })
             .lean();
+
+        if (!properties || properties.length === 0) {
+            return res.status(200).json({
+                status: true,
+                message: `No properties found for micromarket slug: ${slug}`,
+            });
+        }
 
         // Format amenities with full URL
         properties = properties.map(p => formatAmenitiesWithFullUrl(req, p));
@@ -1035,9 +1041,11 @@ const getPropertiesByMicromarketSlug = async (req, res) => {
             properties
         });
     } catch (error) {
+        console.error("❌ Error in getPropertiesByMicromarketSlug:", error);
         res.status(500).json({ status: false, message: error.message });
     }
 };
+
 
 
 // 📌 Delete Property
