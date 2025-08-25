@@ -48,18 +48,33 @@ const getCities = async (req, res) => {
 // Get All Cities Without Token
 const getCitieswithouttoken = async (req, res) => {
     try {
-        const cities = await City.find().populate("stateId").sort({ createdAt: -1 });
+        const { state } = req.query; // ✅ query param se state id lo
+
+        let filter = {};
+        if (state) {
+            filter.stateId = state; // ✅ agar state diya ho to filter lagao
+        }
+
+        const cities = await City.find(filter)
+            .populate("stateId")
+            .sort({ createdAt: -1 });
+
         // Add full path for images
         const citiesWithFullPath = cities.map(city => ({
             ...city._doc,
             image: city.image ? `${process.env.BACKEND_URL}${city.image}` : null
         }));
 
-        res.status(200).json({ message: "Cities fetched successfully", states: true, city: citiesWithFullPath });
+        res.status(200).json({
+            message: "Cities fetched successfully",
+            status: true,
+            city: citiesWithFullPath
+        });
     } catch (error) {
-        res.status(500).json({ message: error.message, states: false });
+        res.status(500).json({ message: error.message, status: false });
     }
 };
+
 
 // Get City by ID
 const getCityById = async (req, res) => {

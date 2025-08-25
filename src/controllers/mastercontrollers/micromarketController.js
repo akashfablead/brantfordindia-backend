@@ -72,14 +72,27 @@ const getMicromarkets = async (req, res) => {
 // Get All Micromarkets without  token
 const getMicromarketswithouttoken = async (req, res) => {
     try {
-        const micromarkets = await Micromarket.find()
+        const { city } = req.query; // ✅ query param se city id lo
+
+        let filter = {};
+        if (city) {
+            filter.cityId = city; // ✅ agar city diya ho to filter lagao
+        }
+
+        const micromarkets = await Micromarket.find(filter)
             .populate("cityId", "name")
             .populate("stateId", "name");
-        res.json({ status: true, message: "Micromarkets fetched successfully", data: micromarkets });
+
+        res.json({
+            status: true,
+            message: "Micromarkets fetched successfully",
+            data: micromarkets
+        });
     } catch (error) {
         res.status(500).json({ status: false, message: error.message });
     }
 };
+
 
 // Get Micromarket by ID
 const getMicromarketById = async (req, res) => {

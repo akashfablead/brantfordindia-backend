@@ -225,6 +225,74 @@ const deleteFooterLink = async (req, res) => {
     }
 };
 
+// const getFooterLinksByPropertyType = async (req, res) => {
+//     try {
+//         const footerLinks = await FooterLink.find()
+//             .populate("propertyType", "name")
+//             .populate("city", "name image")
+//             .sort({ createdAt: -1 })
+//             .lean();
+
+//         // Group by propertyType -> then by city
+//         const grouped = {};
+
+//         footerLinks.forEach(link => {
+//             if (!link.propertyType || !link.city) return;
+
+//             const typeName = link.propertyType.name;
+//             const cityName = link.city.name;
+
+//             if (!grouped[typeName]) {
+//                 grouped[typeName] = {};
+//             }
+//             if (!grouped[typeName][cityName]) {
+//                 grouped[typeName][cityName] = [];
+//             }
+
+//             // Custom title override
+//             let newTitle = link.title;
+//             if (typeName.toLowerCase() === "coworking") {
+//                 newTitle = "Coworking office space";
+//             }
+
+//             grouped[typeName][cityName].push({
+//                 _id: link._id,
+//                 propertyType: link.propertyType,
+//                 city: link.city,
+//                 title: newTitle,
+//                 slug: link.slug,
+//                 createdAt: link.createdAt,
+//                 updatedAt: link.updatedAt
+//             });
+//         });
+
+//         // Final formatted result
+//         const finalResult = {};
+
+//         Object.entries(grouped).forEach(([typeName, cities]) => {
+//             // Convert city object -> array with count
+//             let cityArray = Object.entries(cities).map(([cityName, items]) => ({
+//                 cityName,
+//                 count: items.length,
+//                 items
+//             }));
+
+//             // Sort by count desc and keep top 5
+//             cityArray = cityArray.sort((a, b) => b.count - a.count).slice(0, 5);
+
+//             finalResult[typeName] = cityArray;
+//         });
+
+//         res.json({
+//             status: true,
+//             message: "Footer links grouped by property type & city (top 5 per type)",
+//             data: finalResult
+//         });
+//     } catch (err) {
+//         res.status(500).json({ status: false, message: err.message });
+//     }
+// };
+
 const getFooterLinksByPropertyType = async (req, res) => {
     try {
         const footerLinks = await FooterLink.find()
@@ -283,15 +351,33 @@ const getFooterLinksByPropertyType = async (req, res) => {
             finalResult[typeName] = cityArray;
         });
 
+        // ✅ Ensure order: Residential, Commercial, Coworking first
+        const orderedResult = {};
+        const priorityTypes = ["Residential", "Commercial", "Coworking"];
+
+        priorityTypes.forEach(type => {
+            if (finalResult[type]) {
+                orderedResult[type] = finalResult[type];
+            }
+        });
+
+        // Add the rest of property types
+        Object.keys(finalResult).forEach(type => {
+            if (!priorityTypes.includes(type)) {
+                orderedResult[type] = finalResult[type];
+            }
+        });
+
         res.json({
             status: true,
-            message: "Footer links grouped by property type & city (top 5 per type)",
-            data: finalResult
+            message: "Footer links grouped by property type & city (top 5 per type, ordered)",
+            data: orderedResult
         });
     } catch (err) {
         res.status(500).json({ status: false, message: err.message });
     }
 };
+
 
 module.exports = {
     addFooterLink,
