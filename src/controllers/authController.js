@@ -151,7 +151,7 @@ const googleLogin = async (req, res) => {
                 password: crypto.randomBytes(20).toString("hex"),
                 role: "user",
                 loginProvider: "google",
-                isloggedIn: true,
+
             });
         }
 
@@ -160,7 +160,20 @@ const googleLogin = async (req, res) => {
             expiresIn: "7d",
         });
 
-        res.json({ status: true, token, user });
+        res.json({
+            status: true, token,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                number: user.number,
+                profileImage: user.profileImage ? `${process.env.BACKEND_URL}${user.profileImage}` : picture || null,
+                loginProvider: user.loginProvider || "google", // default to 'google' if not set
+                status: user.status,
+                isloggedIn: true,
+            }
+        });
     } catch (err) {
         console.error("Google login error:", err);
         res.status(500).json({ status: false, message: "Google login failed" });

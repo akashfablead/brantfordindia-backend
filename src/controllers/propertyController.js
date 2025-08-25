@@ -898,57 +898,49 @@ const getPropertyBySlug = async (req, res) => {
 //         res.status(500).json({ status: false, message: error.message });
 //     }
 // };
+
+
+// 📌 Get Properties by PropertyCitySlug
 const getPropertiesByCitySlug = async (req, res) => {
     try {
         const { slug } = req.params;
-        const city = await City.findOne({ slug });
 
-        if (!city) {
-            return res.status(404).json({ status: false, message: "City not found" });
-        }
+        console.log("➡️ Slug received from request:", slug);
 
-        let properties = await Property.find({ city: city._id, status: "Approved" })
+        // Fetch properties using correct field name
+        const properties = await Property.find({
+            PropertyCitySlug: slug,   // ✅ exact match
+            status: "Approved"
+        })
             .populate("state city propertyType micromarket locality")
             .populate("residentialUnitTypes.unitTypeid")
             .populate({ path: "amenities.amenityid", model: "Amenity" })
             .sort({ createdAt: -1 })
             .lean();
 
-        // Format amenities with full URL
-        properties = properties.map(p => formatAmenitiesWithFullUrl(req, p));
+        console.log("➡️ Properties found:", properties.length);
 
-        // Inject favorite and compare status
-        const userId = req.user?._id || req.user?.id || req.user?.userId;
-        if (userId && mongoose.Types.ObjectId.isValid(userId)) {
-            const favs = await Favourites.find({ userId }).select("propertyId").lean();
-            const compares = await Compare.find({ userId }).select("propertyId").lean();
-
-            const favIds = new Set(favs.map(f => f.propertyId.toString()));
-            const compareIds = new Set(compares.map(c => c.propertyId.toString()));
-
-            properties = properties.map(p => ({
-                ...p,
-                favouritestatus: favIds.has(p._id.toString()) ? 1 : 0,
-                compareStatus: compareIds.has(p._id.toString()) ? 1 : 0,
-            }));
-        } else {
-            // Default status for unauthenticated users
-            properties = properties.map(p => ({
-                ...p,
-                favouritestatus: 0,
-                compareStatus: 0,
-            }));
+        if (!properties || properties.length === 0) {
+            return res.status(404).json({
+                status: false,
+                message: `No properties found for city slug: ${slug}`,
+            });
         }
 
-        res.json({
+        return res.status(200).json({
             status: true,
             message: "Properties fetched successfully",
-            properties
+            data: properties,
         });
     } catch (error) {
-        res.status(500).json({ status: false, message: error.message });
+        console.error("❌ Error in getPropertiesByCitySlug:", error);
+        return res.status(500).json({
+            status: false,
+            message: "Internal Server Error",
+        });
     }
 };
+
 
 
 // 📌 Get properties by PropertyMicromarketSlug
