@@ -80,7 +80,6 @@ const getUnitTypeById = async (req, res) => {
 };
 
 
-// Get All Unit Types without token
 // Get All Unit Types without token (filter by PropertyType name if passed)
 const getUnitTypesWithoutToken = async (req, res) => {
     try {
@@ -117,9 +116,6 @@ const getUnitTypesWithoutToken = async (req, res) => {
         res.status(500).json({ message: error.message, success: false });
     }
 };
-
-
-
 
 // Delete Unit Type
 const deleteUnitType = async (req, res) => {

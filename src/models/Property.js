@@ -30,7 +30,7 @@ const propertySchema = new mongoose.Schema({
     slug: { type: String, unique: true, required: true },
     PropertyCitySlug: { type: String, unique: true, required: true },
     PropertyMicromarketSlug: { type: String, unique: true, required: true },
-    listingPropertyAs: { type: String, enum: ["Owner", "Broker", "Channel Partner"], required: true },
+    listingPropertyAs: { type: String, enum: ["Owner", "Broker", "Agent", "Channel Partner"], required: true },
     propertyAvailableFor: { type: String, enum: ["Both", "Rent", "Sale"], required: true },
     listingType: { type: String, enum: ["Residential", "Commercial", "Coworking"], required: true },
 
@@ -87,7 +87,7 @@ const propertySchema = new mongoose.Schema({
     videoUrl: { type: String },
 
     availableOptions: [availableOptionSchema],
-    
+
     status: { type: String, enum: ["Pending", "Approved", "Rejected"], default: "Pending" },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     createdAt: { type: Date, default: Date.now },
