@@ -111,6 +111,7 @@ const login = async (req, res) => {
                 profileImage: user.profileImage ? `${process.env.BACKEND_URL}${user.profileImage}` : null,
                 loginProvider: user.loginProvider || "local", // default to 'local' if not set
                 status: user.status,
+                isloggedIn: true,
             },
         });
     } catch (err) {
@@ -149,6 +150,8 @@ const googleLogin = async (req, res) => {
                 avatar: picture,
                 password: crypto.randomBytes(20).toString("hex"),
                 role: "user",
+                loginProvider: "google",
+                isloggedIn: true,
             });
         }
 
@@ -201,6 +204,8 @@ const facebookLogin = async (req, res) => {
                 number: null,
                 role: "user", // default role
                 loginProvider: "facebook",
+                isloggedIn: true,
+
             });
             await user.save();
         }
@@ -241,25 +246,6 @@ const facebookLogin = async (req, res) => {
 };
 
 // GET /profile
-// const getProfile = async (req, res) => {
-//     try {
-//         const user = await User.findById(req.user.id).select("-password");
-//         if (!user) return res.status(404).json({ message: "User not found" });
-//         const fullImageUrl = user.profileImage
-//             ? `${process.env.BACKEND_URL}${user.profileImage}`
-//             : null;
-
-//         res.json({
-//             status: true,
-//             user: {
-//                 ...user._doc,
-//                 profileImage: fullImageUrl,
-//             },
-//         });
-//     } catch (err) {
-//         res.status(500).json({ status: false, message: err.message });
-//     }
-// };
 const getProfile = async (req, res) => {
     try {
         const user = await User.findById(req.user.id).select("-password");
@@ -390,41 +376,6 @@ const sendResetLink = async (req, res) => {
 };
 
 // Controller: resetPassword
-// const resetPassword = async (req, res) => {
-//     try {
-//         const { newPassword, confirmPassword } = req.body;
-//         const resetToken = req.params.token;
-
-//         if (!newPassword || !confirmPassword) {
-//             return res.status(400).json({ message: "All fields are required" });
-//         }
-
-//         if (newPassword !== confirmPassword) {
-//             return res.status(400).json({ message: "Passwords do not match" });
-//         }
-
-//         const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
-
-//         const user = await User.findOne({
-//             resetPasswordToken: hashedToken,
-//             resetPasswordExpires: { $gt: Date.now() }, // not expired
-//         });
-
-//         if (!user) {
-//             return res.status(400).json({ message: "Token is invalid or expired" });
-//         }
-
-//         user.password = await bcrypt.hash(newPassword, 10);
-//         user.resetPasswordToken = undefined;
-//         user.resetPasswordExpires = undefined;
-//         await user.save();
-
-//         res.json({ status: true, message: "Password has been reset successfully" });
-//     } catch (err) {
-//         res.status(500).json({ status: false, message: err.message });
-//     }
-// };
-
 const resetPassword = async (req, res) => {
     try {
         const { newPassword, confirmPassword } = req.body;
