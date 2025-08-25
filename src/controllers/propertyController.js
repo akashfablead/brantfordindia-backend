@@ -905,8 +905,6 @@ const getPropertiesByCitySlug = async (req, res) => {
     try {
         const { slug } = req.params;
 
-        console.log("➡️ Slug received from request:", slug);
-
         // Fetch properties using correct field name
         let properties = await Property.find({
             PropertyCitySlug: slug,   // ✅ exact match
@@ -917,7 +915,6 @@ const getPropertiesByCitySlug = async (req, res) => {
             .populate({ path: "amenities.amenityid", model: "Amenity" })
             .sort({ createdAt: -1 });
 
-        console.log("➡️ Properties found:", properties.length);
 
         if (!properties || properties.length === 0) {
             return res.status(200).json({
@@ -927,18 +924,22 @@ const getPropertiesByCitySlug = async (req, res) => {
             });
         }
 
-        // ✅ Inject favourite and compare status
         const userId = req.user?._id || req.user?.id || req.user?.userId;
-        let favIds = [];
-        if (userId) {
-            const favs = await Favourites.find({ userId }).select("propertyId");
+        let favIds = [], compareIds = [];
+
+        if (userId && mongoose.Types.ObjectId.isValid(userId)) {
+            const favs = await Favourites.find({ userId }).select("propertyId").lean();
+            const compares = await Compare.find({ userId }).select("propertyId").lean();
+
             favIds = favs.map(f => f.propertyId.toString());
+            compareIds = compares.map(c => c.propertyId.toString());
         }
 
+        // ✅ Format amenities + inject status
         properties = properties.map(p => {
             const obj = formatAmenitiesWithFullUrl(req, p.toObject ? p.toObject() : p);
             obj.favouritestatus = favIds.includes(p._id.toString()) ? 1 : 0;
-            obj.compareStatus = p.compareStatus || 0; // Inject compareStatus
+            obj.compareStatus = compareIds.includes(p._id.toString()) ? 1 : 0;
             return obj;
         });
 
@@ -1007,7 +1008,6 @@ const getPropertiesByMicromarketSlug = async (req, res) => {
     try {
         const { slug } = req.params;
 
-        console.log("➡️ Micromarket Slug received from request:", slug);
 
         // ✅ Directly find properties by PropertyMicromarketSlug
         let properties = await Property.find({
@@ -1019,7 +1019,6 @@ const getPropertiesByMicromarketSlug = async (req, res) => {
             .populate({ path: "amenities.amenityid", model: "Amenity" })
             .sort({ createdAt: -1 });
 
-        console.log("➡️ Properties found:", properties.length);
 
         if (!properties || properties.length === 0) {
             return res.status(200).json({
