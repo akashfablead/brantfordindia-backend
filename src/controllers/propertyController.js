@@ -922,6 +922,7 @@ const getPropertiesByCitySlug = async (req, res) => {
 
         if (!properties || properties.length === 0) {
             return res.status(200).json({
+                data: [],
                 status: true,
                 message: `No properties found for city slug: ${slug}`,
             });
@@ -1004,6 +1005,7 @@ const getPropertiesByMicromarketSlug = async (req, res) => {
 
         if (!properties || properties.length === 0) {
             return res.status(200).json({
+                properties: [],
                 status: true,
                 message: `No properties found for micromarket slug: ${slug}`,
             });
