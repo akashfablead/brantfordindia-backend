@@ -398,7 +398,7 @@ const getPropertiesByUser = async (req, res) => {
 
 const getAllProperties = async (req, res) => {
     try {
-        const properties = await Property.find()
+        const properties = await Property.find({ status: "Approved" })
             .populate("state city propertyType micromarket locality")
             .populate("residentialUnitTypes.unitTypeid")
             .populate({
@@ -1197,67 +1197,67 @@ const getFavourites = async (req, res) => {
 
 
 
-const searchProperties = async (req, res) => {
-    try {
-        const { location, workspaceType } = req.query;
-        const filter = { status: "Approved" };
+// const searchProperties = async (req, res) => {
+//     try {
+//         const { location, workspaceType } = req.query;
+//         const filter = { status: "Approved" };
 
-        if (location) {
-            const regex = new RegExp(location, "i"); // case-insensitive
+//         if (location) {
+//             const regex = new RegExp(location, "i"); // case-insensitive
 
-            // Find matching IDs
-            const [cityIds, microIds, localityIds] = await Promise.all([
-                City.find({ name: regex }).distinct("_id"),
-                Micromarket.find({ name: regex }).distinct("_id"),
-                Locality.find({ name: regex }).distinct("_id"),
-            ]);
+//             // Find matching IDs
+//             const [cityIds, microIds, localityIds] = await Promise.all([
+//                 City.find({ name: regex }).distinct("_id"),
+//                 Micromarket.find({ name: regex }).distinct("_id"),
+//                 Locality.find({ name: regex }).distinct("_id"),
+//             ]);
 
-            filter.$or = [
-                { city: { $in: cityIds } },
-                { micromarket: { $in: microIds } },
-                { locality: { $in: localityIds } },
-                { pinCode: regex },
-            ];
-        }
+//             filter.$or = [
+//                 { city: { $in: cityIds } },
+//                 { micromarket: { $in: microIds } },
+//                 { locality: { $in: localityIds } },
+//                 { pinCode: regex },
+//             ];
+//         }
 
-        if (workspaceType) {
-            filter.propertyType = workspaceType;
-        }
+//         if (workspaceType) {
+//             filter.propertyType = workspaceType;
+//         }
 
-        // Exclude user's own properties
-        const userId = req.user?._id;
-        if (userId) filter.createdBy = { $ne: mongoose.Types.ObjectId(userId) };
+//         // Exclude user's own properties
+//         const userId = req.user?._id;
+//         if (userId) filter.createdBy = { $ne: mongoose.Types.ObjectId(userId) };
 
-        let properties = await Property.find(filter)
-            .populate("state city micromarket locality propertyType")
-            .populate("residentialUnitTypes.unitTypeid")
-            .populate("amenities.amenityid")
-            .lean();
+//         let properties = await Property.find(filter)
+//             .populate("state city micromarket locality propertyType")
+//             .populate("residentialUnitTypes.unitTypeid")
+//             .populate("amenities.amenityid")
+//             .lean();
 
-        // Format image URLs
-        properties = properties.map(p => formatAmenitiesWithFullUrl(req, p));
+//         // Format image URLs
+//         properties = properties.map(p => formatAmenitiesWithFullUrl(req, p));
 
-        if (!properties.length) {
-            return res.status(200).json({
-                status: true,
-                message: "No properties found for this location",
-                properties: [],
-            });
-        }
+//         if (!properties.length) {
+//             return res.status(200).json({
+//                 status: true,
+//                 message: "No properties found for this location",
+//                 properties: [],
+//             });
+//         }
 
-        res.json({
-            status: true,
-            message: "Properties fetched successfully",
-            properties,
-        });
-    } catch (error) {
-        console.error("Error searching properties:", error);
-        res.status(500).json({
-            status: false,
-            message: "Failed to search by location. Please check the location details.",
-        });
-    }
-};
+//         res.json({
+//             status: true,
+//             message: "Properties fetched successfully",
+//             properties,
+//         });
+//     } catch (error) {
+//         console.error("Error searching properties:", error);
+//         res.status(500).json({
+//             status: false,
+//             message: "Failed to search by location. Please check the location details.",
+//         });
+//     }
+// };
 
 // 📌 Get Similar Properties
 // const getSimilarProperties = async (req, res) => {
@@ -1323,6 +1323,107 @@ const searchProperties = async (req, res) => {
 //         res.status(500).json({ status: false, message: error.message });
 //     }
 // };
+
+const searchProperties = async (req, res) => {
+    try {
+        const { location, listingType, propertyAvailableFor, propertyType, expectedAmount } = req.query;
+        const filter = { status: "Approved" };
+
+        // ✅ Location filter
+        if (location) {
+            const regex = new RegExp(location, "i"); // case-insensitive
+
+            // Find matching IDs
+            const [cityIds, microIds, localityIds] = await Promise.all([
+                City.find({ name: regex }).distinct("_id"),
+                Micromarket.find({ name: regex }).distinct("_id"),
+                Locality.find({ name: regex }).distinct("_id"),
+            ]);
+
+            filter.$or = [
+                { city: { $in: cityIds } },
+                { micromarket: { $in: microIds } },
+                { locality: { $in: localityIds } },
+                { pinCode: regex },
+            ];
+        }
+
+        // ✅ Listing Type filter
+        if (listingType) {
+            filter.listingType = listingType;
+        }
+
+        // ✅ Property Available For filter (Sale, Rent, Both logic)
+        if (propertyAvailableFor) {
+            if (propertyAvailableFor === "Sale") {
+                filter.$or = [
+                    ...(filter.$or || []), // preserve existing location conditions
+                    { propertyAvailableFor: "Sale" },
+                    { propertyAvailableFor: "Both" },
+                ];
+            } else if (propertyAvailableFor === "Rent") {
+                filter.$or = [
+                    ...(filter.$or || []),
+                    { propertyAvailableFor: "Rent" },
+                    { propertyAvailableFor: "Both" },
+                ];
+            } else {
+                filter.propertyAvailableFor = propertyAvailableFor; // exact match
+            }
+        }
+
+        // ✅ Specific Property Type filter (ObjectId)
+        if (propertyType) {
+            filter.propertyType = propertyType;
+        }
+
+        // ✅ Expected Amount filter (can be exact or range)
+        if (expectedAmount) {
+            if (expectedAmount.includes("-")) {
+                const [min, max] = expectedAmount.split("-").map(Number);
+                filter.expectedAmount = { $gte: min, $lte: max };
+            } else {
+                filter.expectedAmount = expectedAmount; // exact match
+            }
+        }
+
+        // ✅ Exclude user's own properties
+        const userId = req.user?._id;
+        if (userId) filter.createdBy = { $ne: mongoose.Types.ObjectId(userId) };
+
+        let properties = await Property.find(filter)
+            .populate("state city micromarket locality propertyType")
+            .populate("residentialUnitTypes.unitTypeid")
+            .populate("amenities.amenityid")
+            .lean();
+
+        // ✅ Format image URLs
+        properties = properties.map((p) => formatAmenitiesWithFullUrl(req, p));
+
+        if (!properties.length) {
+            return res.status(200).json({
+                status: true,
+                message: "No properties found for this search criteria",
+                properties: [],
+            });
+        }
+
+        res.json({
+            status: true,
+            message: "Properties fetched successfully",
+            properties,
+        });
+    } catch (error) {
+        console.error("Error searching properties:", error);
+        res.status(500).json({
+            status: false,
+            message: "Failed to search by filters. Please check query params.",
+        });
+    }
+};
+
+
+
 
 const getSimilarProperties = async (req, res) => {
     try {
