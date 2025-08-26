@@ -1231,7 +1231,8 @@ const searchProperties = async (req, res) => {
         let properties = await Property.find(filter)
             .populate("state city micromarket locality propertyType")
             .populate("residentialUnitTypes.unitTypeid")
-            .populate("amenities.amenityid");
+            .populate("amenities.amenityid")
+            .lean();
 
         // Format image URLs
         properties = properties.map(p => formatAmenitiesWithFullUrl(req, p));
@@ -1395,6 +1396,63 @@ const getSimilarProperties = async (req, res) => {
 
 
 // GET top cities by property type
+// const getTopCitiesByPropertyType = async (req, res) => {
+//     try {
+//         const { propertyTypeId } = req.params;
+//         let matchStage = { status: "Approved" };
+
+//         if (propertyTypeId !== "all") {
+//             if (!mongoose.Types.ObjectId.isValid(propertyTypeId)) {
+//                 return res.status(400).json({ status: false, message: "Invalid PropertyType ID" });
+//             }
+//             matchStage.propertyType = new mongoose.Types.ObjectId(propertyTypeId);
+//         }
+
+//         // Aggregate properties by city
+//         const topCities = await Property.aggregate([
+//             { $match: matchStage },
+//             { $group: { _id: "$city", propertyCount: { $sum: 1 } } },
+//             { $sort: { propertyCount: -1 } },
+//             { $limit: 10 },
+//             {
+//                 $lookup: {
+//                     from: "cities",
+//                     localField: "_id",
+//                     foreignField: "_id",
+//                     as: "cityDetails"
+//                 }
+//             },
+//             { $unwind: "$cityDetails" },
+//             {
+//                 $project: {
+//                     _id: 0,
+//                     cityId: "$cityDetails._id",
+//                     cityName: "$cityDetails.name",
+//                     cityImage: "$cityDetails.image",
+//                     propertyCount: 1
+//                 }
+//             }
+//         ]);
+
+//         // Construct full image URLs
+//         const citiesWithFullPath = topCities.map(city => ({
+//             ...city,
+//             cityImage: city.cityImage ? `${process.env.BACKEND_URL}${city.cityImage}` : null
+//         }));
+
+//         res.status(200).json({
+//             status: true,
+//             message: propertyTypeId === "all"
+//                 ? "Top cities (all property types) fetched successfully"
+//                 : "Top cities fetched successfully",
+//             topCities: citiesWithFullPath
+//         });
+//     } catch (error) {
+//         console.error("Error in getTopCitiesByPropertyType:", error);
+//         res.status(500).json({ status: false, message: error.message });
+//     }
+// };
+
 const getTopCitiesByPropertyType = async (req, res) => {
     try {
         const { propertyTypeId } = req.params;
@@ -1407,12 +1465,19 @@ const getTopCitiesByPropertyType = async (req, res) => {
             matchStage.propertyType = new mongoose.Types.ObjectId(propertyTypeId);
         }
 
-        // Aggregate properties by city
         const topCities = await Property.aggregate([
             { $match: matchStage },
-            { $group: { _id: "$city", propertyCount: { $sum: 1 } } },
-            { $sort: { propertyCount: -1 } },
-            { $limit: 10 },
+
+            // ✅ Group by City ObjectId (always consistent)
+            {
+                $group: {
+                    _id: "$city",   // <-- Direct City ref from Property
+                    propertyCount: { $sum: 1 },
+                    sampleSlug: { $first: "$PropertyCitySlug" } // keep one slug reference
+                }
+            },
+
+            // ✅ Lookup actual city details
             {
                 $lookup: {
                     from: "cities",
@@ -1422,10 +1487,15 @@ const getTopCitiesByPropertyType = async (req, res) => {
                 }
             },
             { $unwind: "$cityDetails" },
+
+            { $sort: { propertyCount: -1 } },
+            { $limit: 10 },
+
             {
                 $project: {
                     _id: 0,
                     cityId: "$cityDetails._id",
+                    citySlug: "$sampleSlug",       // property slug (reference only)
                     cityName: "$cityDetails.name",
                     cityImage: "$cityDetails.image",
                     propertyCount: 1
@@ -1433,7 +1503,6 @@ const getTopCitiesByPropertyType = async (req, res) => {
             }
         ]);
 
-        // Construct full image URLs
         const citiesWithFullPath = topCities.map(city => ({
             ...city,
             cityImage: city.cityImage ? `${process.env.BACKEND_URL}${city.cityImage}` : null
@@ -1451,6 +1520,10 @@ const getTopCitiesByPropertyType = async (req, res) => {
         res.status(500).json({ status: false, message: error.message });
     }
 };
+
+
+
+
 
 
 // 📌 Compare Properties
