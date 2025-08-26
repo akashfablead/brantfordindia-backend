@@ -1297,13 +1297,12 @@ const searchProperties = async (req, res) => {
         // ✅ City filter
         if (city) {
             if (mongoose.Types.ObjectId.isValid(city)) {
-                filter.city = mongoose.Types.ObjectId(city);
+                filter.city = new mongoose.Types.ObjectId(city);
             } else {
                 const cityIds = await City.find({ name: new RegExp(city, "i") }).distinct("_id");
                 if (cityIds.length > 0) {
                     filter.city = { $in: cityIds };
                 } else {
-                    // city not found → कोई property return मत करो
                     return res.status(200).json({ status: true, message: "City not found", properties: [] });
                 }
             }
@@ -1358,7 +1357,7 @@ const searchProperties = async (req, res) => {
         // ✅ Property Type filter
         if (propertyType) {
             if (mongoose.Types.ObjectId.isValid(propertyType)) {
-                filter.propertyType = mongoose.Types.ObjectId(propertyType);
+                filter.propertyType = new mongoose.Types.ObjectId(propertyType);
             } else {
                 return res.status(200).json({ status: true, message: "Invalid property type", properties: [] });
             }
@@ -1376,15 +1375,35 @@ const searchProperties = async (req, res) => {
 
         // ✅ Exclude user's own properties
         const userId = req.user?._id;
-        if (userId) filter.createdBy = { $ne: mongoose.Types.ObjectId(userId) };
+        if (userId && mongoose.Types.ObjectId.isValid(userId)) {
+            filter.createdBy = { $ne: new mongoose.Types.ObjectId(userId) };
+        }
 
-        let properties = await Property.find(filter)
-            .populate("state city micromarket locality propertyType")
-            .populate("residentialUnitTypes.unitTypeid")
-            .populate("amenities.amenityid")
-            .lean();
+        // 🔹 Log filter for debugging
+        console.log("Property search filter:", JSON.stringify(filter, null, 2));
 
-        properties = properties.map((p) => formatAmenitiesWithFullUrl(req, p));
+        // ✅ Fetch properties safely
+        let properties = [];
+        try {
+            properties = await Property.find(filter)
+                .populate("state city micromarket locality propertyType")
+                .populate("residentialUnitTypes.unitTypeid")
+                .populate("amenities.amenityid")
+                .lean();
+        } catch (err) {
+            console.error("Error fetching properties:", err);
+            return res.status(500).json({ status: false, message: "Error fetching properties" });
+        }
+
+        // ✅ Format amenities safely
+        properties = properties.map((p) => {
+            try {
+                return formatAmenitiesWithFullUrl(req, p);
+            } catch (err) {
+                console.error("Error formatting amenities for property:", p._id, err);
+                return p; // fallback
+            }
+        });
 
         if (!properties.length) {
             return res.status(200).json({
@@ -1407,7 +1426,6 @@ const searchProperties = async (req, res) => {
         });
     }
 };
-
 
 const getSimilarProperties = async (req, res) => {
     try {
