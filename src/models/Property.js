@@ -3,18 +3,18 @@ const mongoose = require("mongoose");
 
 
 const connectivitySchema = new mongoose.Schema({
-    mode: { type: String, required: true },
-    approxDistance: { type: String, required: true }
+    mode: { type: String },
+    approxDistance: { type: String }
 }, { _id: true });
 
 const meetingRoomSchema = new mongoose.Schema({
-    noOfRooms: { type: Number, required: true },
-    capacityPerRoom: { type: Number, required: true }
+    noOfRooms: { type: Number },
+    capacityPerRoom: { type: Number }
 }, { _id: true });
 
 const availableOptionSchema = new mongoose.Schema({
-    option: { type: String, required: true },
-    pricing: { type: String, required: true }
+    option: { type: String },
+    pricing: { type: String }
 }, { _id: true });
 
 const amenitiesSchema = new mongoose.Schema({
@@ -22,7 +22,7 @@ const amenitiesSchema = new mongoose.Schema({
 }, { _id: false });
 
 const unitTypeSchema = new mongoose.Schema({
-    unitTypeid: { type: mongoose.Schema.Types.ObjectId, ref: "UnitType", required: true },
+    unitTypeid: { type: mongoose.Schema.Types.ObjectId, ref: "UnitType" },
 }, { _id: false });
 
 const propertySchema = new mongoose.Schema({
@@ -32,7 +32,7 @@ const propertySchema = new mongoose.Schema({
     PropertyMicromarketSlug: { type: String, unique: true, required: true },
     listingPropertyAs: { type: String, enum: ["Owner", "Broker", "Agent", "Channel Partner"], required: true },
     propertyAvailableFor: { type: String, enum: ["Both", "Rent", "Sale"], required: true },
-    listingType: { type: String, enum: ["Residential", "Commercial", "Coworking"], required: true },
+    listingType: { type: String, enum: ["Residential", "Commercial", "Coworking", "Plots"], required: true },
 
     state: { type: mongoose.Schema.Types.ObjectId, ref: "State", required: true },
     city: { type: mongoose.Schema.Types.ObjectId, ref: "City", required: true },

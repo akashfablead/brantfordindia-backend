@@ -94,9 +94,9 @@ const getUnitTypesWithoutToken = async (req, res) => {
             });
 
             if (!propertyType) {
-                return res.status(404).json({
+                return res.status(200).json({
                     message: "Property Type not found",
-                    success: false
+                    success: true
                 });
             }
 

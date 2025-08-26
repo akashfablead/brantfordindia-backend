@@ -11,8 +11,10 @@ const Compare = require("../models/Compare");
 
 const getFullUrl = (req, relativePath) => {
     if (!relativePath) return null;
-    // Remove any starting slash to avoid "//" in final URL
-    const cleanPath = relativePath.replace(/^\/+/, "");
+
+    // Replace backslashes with forward slashes and remove any starting slash
+    const cleanPath = relativePath.replace(/\\/g, '/').replace(/^\/+/, "");
+
     return `${req.protocol}://${req.get("host")}/${cleanPath}`;
 };
 
@@ -96,33 +98,6 @@ function parseArrayFields(reqBody, fieldNames) {
 
     return arr;
 }
-
-const injectFavouriteStatus = async (req, properties) => {
-    const userId = req.user?._id || req.user?.id || req.user?.userId;
-    let favIds = [];
-
-
-    if (userId) {
-        const favs = await Favourites.find({ userId }).select("propertyId");
-        favIds = favs.map(f => f.propertyId.toString());
-    }
-
-    return properties.map(p => {
-        const obj = formatAmenitiesWithFullUrl(req, p.toObject());
-        obj.favouritestatus = favIds.includes(p._id.toString()) ? 1 : 0;
-        return obj;
-    });
-};
-
-const injectCompareStatus = async (properties) => {
-    return properties
-        .map(p => {
-            const obj = p.toObject ? p.toObject() : p;
-            obj.compareStatus = p.compareStatus || 0; // Default to 0 if not set
-            return obj;
-        })
-        .filter(p => p.compareStatus === 1); // Filter to show only properties with compareStatus = 1
-};
 
 const addProperty = async (req, res) => {
     try {
@@ -815,7 +790,7 @@ const getPropertyById = async (req, res) => {
 const getPropertyBySlug = async (req, res) => {
     try {
         const { slug } = req.params;
-        let property = await Property.findOne({ slug, status: "Approved" })
+        let property = await Property.findOne({ slug })
             .populate("state city propertyType micromarket locality")
             .populate("residentialUnitTypes.unitTypeid")
             .populate({ path: "amenities.amenityid", model: "Amenity" })
