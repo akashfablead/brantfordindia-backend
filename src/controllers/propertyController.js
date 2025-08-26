@@ -447,14 +447,101 @@ const getAllProperties = async (req, res) => {
 
 
 // 📌 Get Recently Added Office Spaces (limit 10)
-const getRecentlyAddedOfficeSpaces = async (req, res) => {
-    try {
-        const filter = {
-            listingType: "Coworking", // "Office Spaces"
-            status: "Approved"
-        };
+// const getRecentlyAddedOfficeSpaces = async (req, res) => {
+//     try {
+//         const filter = {
+//             listingType: "Coworking", // "Office Spaces"
+//             status: "Approved"
+//         };
 
-        // If logged in → exclude own properties
+//         // If logged in → exclude own properties
+//         const userId = req.user?._id || req.user?.id || req.user?.userId;
+//         if (userId && mongoose.Types.ObjectId.isValid(userId)) {
+//             filter.createdBy = { $ne: new mongoose.Types.ObjectId(userId) };
+//         }
+
+//         let properties = await Property.find(filter)
+//             .populate("state city propertyType micromarket locality")
+//             .populate("residentialUnitTypes.unitTypeid")
+//             .populate({ path: "amenities.amenityid", model: "Amenity" })
+//             .sort({ createdAt: -1 })
+//             .limit(10)
+//             .lean();
+
+//         if (properties.length > 0 && userId && mongoose.Types.ObjectId.isValid(userId)) {
+//             const propertyIds = properties.map(p => p._id);
+
+//             // ✅ Fetch all favourites in one query
+//             const favourites = await Favourites.find({
+//                 userId: new mongoose.Types.ObjectId(userId),
+//                 propertyId: { $in: propertyIds }
+//             }).lean();
+
+//             const favouriteSet = new Set(favourites.map(f => String(f.propertyId)));
+
+//             // ✅ Fetch all compared properties for this user
+//             const compareList = await Compare.find({
+//                 userId: new mongoose.Types.ObjectId(userId),
+//                 propertyId: { $in: propertyIds }
+//             }).lean();
+
+//             const compareSet = new Set(compareList.map(c => String(c.propertyId)));
+
+//             // ✅ Inject favouritestatus & compareStatus
+//             properties = properties.map(p => ({
+//                 ...p,
+//                 favouritestatus: favouriteSet.has(String(p._id)) ? 1 : 0,
+//                 compareStatus: compareSet.has(String(p._id)) ? 1 : 0
+//             }));
+//         } else {
+//             // If no user → mark all as not favourite and not in compare list
+//             properties = properties.map(p => ({
+//                 ...p,
+//                 favouritestatus: 0,
+//                 compareStatus: 0
+//             }));
+//         }
+
+//         res.json({
+//             status: true,
+//             message: "Recently Added Office Spaces fetched successfully",
+//             properties
+//         });
+//     } catch (error) {
+//         console.error("Error fetching recently added office spaces:", error);
+//         res.status(500).json({ status: false, message: error.message });
+//     }
+// };
+
+const getPropertiesByCategory = async (req, res) => {
+    try {
+        const { category } = req.query; // "recent" | "mostSearchedOffice" | "mostSearchedResidential"
+
+        let filter = { status: "Approved" };
+        let sort = {};
+        let limit = 10;
+
+        // Apply category-specific logic
+        if (category === "recent") {
+            filter.listingType = "Coworking"; // Office spaces (coworking only)
+            sort = { createdAt: -1 };
+        }
+        else if (category === "mostSearchedOffice") {
+            filter.listingType = "Office"; // Office spaces
+            sort = { searchCount: -1 }; // Assume you store search count in property
+        }
+        else if (category === "mostSearchedResidential") {
+            filter.listingType = "Residential"; // Residential spaces
+            sort = { searchCount: -1 };
+        }
+        else {
+            return res.status(400).json({
+                status: false,
+                message: "Invalid category type"
+            });
+        }
+
+        // Exclude own properties if user logged in
         const userId = req.user?._id || req.user?.id || req.user?.userId;
         if (userId && mongoose.Types.ObjectId.isValid(userId)) {
             filter.createdBy = { $ne: new mongoose.Types.ObjectId(userId) };
@@ -464,14 +551,14 @@ const getRecentlyAddedOfficeSpaces = async (req, res) => {
             .populate("state city propertyType micromarket locality")
             .populate("residentialUnitTypes.unitTypeid")
             .populate({ path: "amenities.amenityid", model: "Amenity" })
-            .sort({ createdAt: -1 })
-            .limit(10)
+            .sort(sort)
+            .limit(limit)
             .lean();
 
+        // Favourite & Compare check
         if (properties.length > 0 && userId && mongoose.Types.ObjectId.isValid(userId)) {
             const propertyIds = properties.map(p => p._id);
 
-            // ✅ Fetch all favourites in one query
             const favourites = await Favourites.find({
                 userId: new mongoose.Types.ObjectId(userId),
                 propertyId: { $in: propertyIds }
@@ -479,7 +566,6 @@ const getRecentlyAddedOfficeSpaces = async (req, res) => {
 
             const favouriteSet = new Set(favourites.map(f => String(f.propertyId)));
 
-            // ✅ Fetch all compared properties for this user
             const compareList = await Compare.find({
                 userId: new mongoose.Types.ObjectId(userId),
                 propertyId: { $in: propertyIds }
@@ -487,14 +573,12 @@ const getRecentlyAddedOfficeSpaces = async (req, res) => {
 
             const compareSet = new Set(compareList.map(c => String(c.propertyId)));
 
-            // ✅ Inject favouritestatus & compareStatus
             properties = properties.map(p => ({
                 ...p,
                 favouritestatus: favouriteSet.has(String(p._id)) ? 1 : 0,
                 compareStatus: compareSet.has(String(p._id)) ? 1 : 0
             }));
         } else {
-            // If no user → mark all as not favourite and not in compare list
             properties = properties.map(p => ({
                 ...p,
                 favouritestatus: 0,
@@ -504,11 +588,11 @@ const getRecentlyAddedOfficeSpaces = async (req, res) => {
 
         res.json({
             status: true,
-            message: "Recently Added Office Spaces fetched successfully",
+            message: `${category} properties fetched successfully`,
             properties
         });
     } catch (error) {
-        console.error("Error fetching recently added office spaces:", error);
+        console.error("Error fetching properties:", error);
         res.status(500).json({ status: false, message: error.message });
     }
 };
@@ -1196,156 +1280,55 @@ const getFavourites = async (req, res) => {
 };
 
 
-
-// const searchProperties = async (req, res) => {
-//     try {
-//         const { location, workspaceType } = req.query;
-//         const filter = { status: "Approved" };
-
-//         if (location) {
-//             const regex = new RegExp(location, "i"); // case-insensitive
-
-//             // Find matching IDs
-//             const [cityIds, microIds, localityIds] = await Promise.all([
-//                 City.find({ name: regex }).distinct("_id"),
-//                 Micromarket.find({ name: regex }).distinct("_id"),
-//                 Locality.find({ name: regex }).distinct("_id"),
-//             ]);
-
-//             filter.$or = [
-//                 { city: { $in: cityIds } },
-//                 { micromarket: { $in: microIds } },
-//                 { locality: { $in: localityIds } },
-//                 { pinCode: regex },
-//             ];
-//         }
-
-//         if (workspaceType) {
-//             filter.propertyType = workspaceType;
-//         }
-
-//         // Exclude user's own properties
-//         const userId = req.user?._id;
-//         if (userId) filter.createdBy = { $ne: mongoose.Types.ObjectId(userId) };
-
-//         let properties = await Property.find(filter)
-//             .populate("state city micromarket locality propertyType")
-//             .populate("residentialUnitTypes.unitTypeid")
-//             .populate("amenities.amenityid")
-//             .lean();
-
-//         // Format image URLs
-//         properties = properties.map(p => formatAmenitiesWithFullUrl(req, p));
-
-//         if (!properties.length) {
-//             return res.status(200).json({
-//                 status: true,
-//                 message: "No properties found for this location",
-//                 properties: [],
-//             });
-//         }
-
-//         res.json({
-//             status: true,
-//             message: "Properties fetched successfully",
-//             properties,
-//         });
-//     } catch (error) {
-//         console.error("Error searching properties:", error);
-//         res.status(500).json({
-//             status: false,
-//             message: "Failed to search by location. Please check the location details.",
-//         });
-//     }
-// };
-
-// 📌 Get Similar Properties
-// const getSimilarProperties = async (req, res) => {
-//     try {
-//         const { id } = req.params;
-//         const baseProperty = await Property.findById(id);
-//         if (!baseProperty) {
-//             return res.status(404).json({ status: false, message: "Property not found" });
-//         }
-
-//         const filter = {
-//             _id: { $ne: baseProperty._id },
-//             status: "Approved",
-//             propertyType: baseProperty.propertyType,
-//             city: baseProperty.city,
-//             listingType: baseProperty.listingType
-//         };
-
-//         let similarProperties = await Property.find(filter)
-//             .populate("state city propertyType micromarket locality")
-//             .populate("residentialUnitTypes.unitTypeid")
-//             .populate({
-//                 path: "amenities.amenityid",
-//                 model: "Amenity"
-//             })
-//             .sort({ createdAt: -1 })
-//             .limit(10)
-//             .lean(); // Use lean() for plain JS objects;
-
-//         // Inject favourite and compare status
-//         const userId = req.user?._id || req.user?.id || req.user?.userId;
-//         if (userId && mongoose.Types.ObjectId.isValid(userId)) {
-//             const favs = await Favourites.find({ userId }).select("propertyId");
-//             const favIds = favs.map(f => f.propertyId.toString());
-
-//             similarProperties = similarProperties.map(p => {
-//                 const prop = p.toObject ? p.toObject() : p;
-//                 return {
-//                     ...prop,
-//                     favouritestatus: favIds.includes(p._id.toString()) ? 1 : 0,
-//                     compareStatus: p.compareStatus || 0 // Inject compareStatus
-//                 };
-//             });
-//         } else {
-//             similarProperties = similarProperties.map(p => {
-//                 const prop = p.toObject ? p.toObject() : p;
-//                 return {
-//                     ...prop,
-//                     favouritestatus: 0,
-//                     compareStatus: p.compareStatus || 0 // Inject compareStatus
-//                 };
-//             });
-//         }
-
-//         res.status(200).json({
-//             status: true,
-//             message: "Similar properties fetched successfully",
-//             count: similarProperties.length,
-//             properties: similarProperties
-//         });
-//     } catch (error) {
-//         console.error("Error fetching similar properties:", error);
-//         res.status(500).json({ status: false, message: error.message });
-//     }
-// };
-
 const searchProperties = async (req, res) => {
     try {
-        const { location, listingType, propertyAvailableFor, propertyType, expectedAmount } = req.query;
+        const { location, city, listingType, propertyAvailableFor, propertyType, expectedAmount } = req.query;
         const filter = { status: "Approved" };
 
-        // ✅ Location filter
-        if (location) {
-            const regex = new RegExp(location, "i"); // case-insensitive
+        // ✅ अगर कोई भी filter param नहीं आया, तो खाली result return करो
+        if (!city && !location && !listingType && !propertyAvailableFor && !propertyType && !expectedAmount) {
+            return res.status(200).json({
+                status: true,
+                message: "No filters applied, no properties returned",
+                properties: [],
+            });
+        }
 
-            // Find matching IDs
+        // ✅ City filter
+        if (city) {
+            if (mongoose.Types.ObjectId.isValid(city)) {
+                filter.city = mongoose.Types.ObjectId(city);
+            } else {
+                const cityIds = await City.find({ name: new RegExp(city, "i") }).distinct("_id");
+                if (cityIds.length > 0) {
+                    filter.city = { $in: cityIds };
+                } else {
+                    // city not found → कोई property return मत करो
+                    return res.status(200).json({ status: true, message: "City not found", properties: [] });
+                }
+            }
+        }
+
+        // ✅ Location filter (केवल तभी चले जब city param ना हो)
+        if (location && !city) {
+            const regex = new RegExp(location, "i");
+
             const [cityIds, microIds, localityIds] = await Promise.all([
                 City.find({ name: regex }).distinct("_id"),
                 Micromarket.find({ name: regex }).distinct("_id"),
                 Locality.find({ name: regex }).distinct("_id"),
             ]);
 
-            filter.$or = [
-                { city: { $in: cityIds } },
-                { micromarket: { $in: microIds } },
-                { locality: { $in: localityIds } },
-                { pinCode: regex },
-            ];
+            if (cityIds.length || microIds.length || localityIds.length) {
+                filter.$or = [
+                    { city: { $in: cityIds } },
+                    { micromarket: { $in: microIds } },
+                    { locality: { $in: localityIds } },
+                    { pinCode: regex },
+                ];
+            } else {
+                return res.status(200).json({ status: true, message: "Location not found", properties: [] });
+            }
         }
 
         // ✅ Listing Type filter
@@ -1353,11 +1336,11 @@ const searchProperties = async (req, res) => {
             filter.listingType = listingType;
         }
 
-        // ✅ Property Available For filter (Sale, Rent, Both logic)
+        // ✅ Property Available For filter
         if (propertyAvailableFor) {
             if (propertyAvailableFor === "Sale") {
                 filter.$or = [
-                    ...(filter.$or || []), // preserve existing location conditions
+                    ...(filter.$or || []),
                     { propertyAvailableFor: "Sale" },
                     { propertyAvailableFor: "Both" },
                 ];
@@ -1368,22 +1351,26 @@ const searchProperties = async (req, res) => {
                     { propertyAvailableFor: "Both" },
                 ];
             } else {
-                filter.propertyAvailableFor = propertyAvailableFor; // exact match
+                filter.propertyAvailableFor = propertyAvailableFor;
             }
         }
 
-        // ✅ Specific Property Type filter (ObjectId)
+        // ✅ Property Type filter
         if (propertyType) {
-            filter.propertyType = propertyType;
+            if (mongoose.Types.ObjectId.isValid(propertyType)) {
+                filter.propertyType = mongoose.Types.ObjectId(propertyType);
+            } else {
+                return res.status(200).json({ status: true, message: "Invalid property type", properties: [] });
+            }
         }
 
-        // ✅ Expected Amount filter (can be exact or range)
+        // ✅ Expected Amount filter
         if (expectedAmount) {
             if (expectedAmount.includes("-")) {
                 const [min, max] = expectedAmount.split("-").map(Number);
                 filter.expectedAmount = { $gte: min, $lte: max };
             } else {
-                filter.expectedAmount = expectedAmount; // exact match
+                filter.expectedAmount = Number(expectedAmount);
             }
         }
 
@@ -1397,7 +1384,6 @@ const searchProperties = async (req, res) => {
             .populate("amenities.amenityid")
             .lean();
 
-        // ✅ Format image URLs
         properties = properties.map((p) => formatAmenitiesWithFullUrl(req, p));
 
         if (!properties.length) {
@@ -1421,8 +1407,6 @@ const searchProperties = async (req, res) => {
         });
     }
 };
-
-
 
 
 const getSimilarProperties = async (req, res) => {
@@ -1622,35 +1606,6 @@ const getTopCitiesByPropertyType = async (req, res) => {
     }
 };
 
-
-
-
-
-
-// 📌 Compare Properties
-// const toggleCompareProperty = async (req, res) => {
-//     try {
-//         const { propertyId } = req.params;
-//         let property = await Property.findById(propertyId);
-//         if (!property) {
-//             return res.status(404).json({ message: "Property not found" });
-//         }
-
-//         // Toggle compare status
-//         property.compareStatus = property.compareStatus === 1 ? 0 : 1;
-//         await property.save();
-
-//         res.status(200).json({
-//             message: property.compareStatus === 1
-//                 ? "Property added to compare list"
-//                 : "Property removed from compare list",
-//             property
-//         });
-//     } catch (error) {
-//         res.status(500).json({ message: "Server error", error: error.message });
-//     }
-// };
-
 const toggleCompareProperty = async (req, res) => {
     try {
         const { propertyId } = req.params;
@@ -1755,7 +1710,7 @@ module.exports = {
     changeStatus,
     getstatusProperties,
     getAllPropertiesfilter,
-    getRecentlyAddedOfficeSpaces,
+    getPropertiesByCategory,
     getPropertiesByUser,
     getAllProperties,
     getPropertyById,
