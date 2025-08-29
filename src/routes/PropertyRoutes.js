@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { addProperty, editProperty, changeStatus, getAllProperties, getPropertyById, getPropertyBySlug, deleteProperty, deleteAvailableOption, deleteMeetingRoom, deleteConnectivity, getAllPropertiesfilter, getRecentlyAddedOfficeSpaces, toggleFavourite, getFavourites, getstatusProperties, getPropertiesByCitySlug, getPropertiesByMicromarketSlug, searchProperties, getSimilarProperties, getTopCitiesByPropertyType, toggleCompareProperty, getCompareProperties, getPropertiesByUser, getPropertiesByCategory } = require("../controllers/propertyController");
+const { addProperty, editProperty, changeStatus, getAllProperties, getPropertyById, getPropertyBySlug, deleteProperty, deleteAvailableOption, deleteMeetingRoom, deleteConnectivity, getAllPropertiesfilter, getRecentlyAddedOfficeSpaces, toggleFavourite, getFavourites, getstatusProperties, getPropertiesByCitySlug, getPropertiesByMicromarketSlug, searchProperties, getSimilarProperties, getTopCitiesByPropertyType, toggleCompareProperty, getCompareProperties, getPropertiesByUser, getPropertiesByCategory, deletePropertyMedia } = require("../controllers/propertyController");
 const { authenticateToken } = require("../middleware/authMiddleware");
 const optionalAuth = require("../middleware/optionalAuth");
 const createMulterUpload = require("../config/multer");
@@ -8,9 +8,10 @@ const upload = createMulterUpload("properties");
 
 // Sub-item deletes
 const propertyUploads = upload.fields([
-    { name: "floorPlans", maxCount: 10 },
-    { name: "propertyImages", maxCount: 20 },
-    { name: "featuredImages", maxCount: 5 }
+    { name: "floorPlans", maxCount: 50 },
+    { name: "propertyImages", maxCount: 50 },
+    { name: "featuredImages", maxCount: 50 },
+    { name: "propertyVideos", maxCount: 10 },
 ]);
 
 // CRUD routes
@@ -20,8 +21,8 @@ router.delete("/:id", authenticateToken, deleteProperty);
 
 // Sub-item deletes
 router.delete("/available-option/:id/:optionId", authenticateToken, deleteAvailableOption);
-router.delete("/meeting-room/:id/:roomId", authenticateToken, deleteMeetingRoom);
-router.delete("/connectivity/:id/:connectId", authenticateToken, deleteConnectivity);
+router.delete("/media/:id", authenticateToken, upload.none(), deletePropertyMedia);
+
 
 // Get favorite properties user
 // Toggle favorite (add/remove)

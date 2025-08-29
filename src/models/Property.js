@@ -1,92 +1,104 @@
 const mongoose = require("mongoose");
 
 
-
-const connectivitySchema = new mongoose.Schema({
-    mode: { type: String },
-    approxDistance: { type: String }
-}, { _id: true });
-
-const meetingRoomSchema = new mongoose.Schema({
-    noOfRooms: { type: Number },
-    capacityPerRoom: { type: Number }
-}, { _id: true });
-
 const availableOptionSchema = new mongoose.Schema({
     option: { type: String },
-    pricing: { type: String }
 }, { _id: true });
 
 const amenitiesSchema = new mongoose.Schema({
     amenityid: { type: mongoose.Schema.Types.ObjectId, ref: "Amenity", required: true },
 }, { _id: false });
 
-const unitTypeSchema = new mongoose.Schema({
-    unitTypeid: { type: mongoose.Schema.Types.ObjectId, ref: "UnitType" },
-}, { _id: false });
 
 const propertySchema = new mongoose.Schema({
+
+    // Basic Info step - 1
+    listingPropertyAs: { type: String, enum: ["Owner", "Broker", "Agent", "Builder"], required: true },
     title: { type: String, required: true },
     slug: { type: String, unique: true, required: true },
     PropertyCitySlug: { type: String, unique: true, required: true },
     PropertyMicromarketSlug: { type: String, unique: true, required: true },
-    listingPropertyAs: { type: String, enum: ["Owner", "Broker", "Agent", "Channel Partner"], required: true },
-    propertyAvailableFor: { type: String, enum: ["Both", "Rent", "Sale"], required: true },
-    listingType: { type: String, enum: ["Residential", "Commercial", "Coworking", "Plots"], required: true },
-
-    state: { type: mongoose.Schema.Types.ObjectId, ref: "State", required: true },
-    city: { type: mongoose.Schema.Types.ObjectId, ref: "City", required: true },
-    buildingName: { type: String, required: true },
-    buildingStatus: { type: String, enum: ["Ready", "Under Construction"], required: true },
-    proposedAvailabilityDate: { type: Date },
-    displayIn: [{ type: String, enum: ["Recently Added", "Featured", "Recently Transacted"] }],
-    propertyType: { type: mongoose.Schema.Types.ObjectId, ref: "PropertyType", required: true },
-    micromarket: { type: mongoose.Schema.Types.ObjectId, ref: "Micromarket", required: true },
-    locality: { type: mongoose.Schema.Types.ObjectId, ref: "Locality", required: true },
-
-    address: { type: String, required: true },
-    latitude: { type: String, required: true },
-    longitude: { type: String, required: true },
-    unitType: { type: mongoose.Schema.Types.ObjectId, ref: "UnitType" },
-    pinCode: { type: String },
-
-    connectivity: [connectivitySchema],
-
-    // Commercial fields
-    inventoryCondition: { type: String },
-    unitNo: { type: String },
-    floorNo: { type: String },
-    expectedAmount: { type: String },
-    quotedAmountPerSqft: { type: String },
-    unitDescription: { type: String },
-
-    // Residential fields
-    unitCondition: { type: String },
-    residentialUnitTypes: [unitTypeSchema],
-    chargeableArea: { type: String },
-
-    // Coworking fields
-    availableCapacity: { type: String },
-    totalArea: { type: String },
-    configuration: { type: String },
-    quotedAmountPerSeat: { type: String },
-    offering: { type: String },
-    meetingRoomsAvailable: { type: String, enum: ["Yes", "No"] },
-    meetingRoomDetails: [meetingRoomSchema],
-
-    amenities: [amenitiesSchema],
-    openToBrokers: { type: String, enum: ["Yes", "No"] },
-    openToNegotiation: { type: String, enum: ["Yes", "No"] },
-    minimumLockInMonths: { type: Number },
-    minimumLicenseMonths: { type: Number },
     description: { type: String, required: true },
+    listingType: { type: String, enum: ["Residential", "Commercial", "Coworking", "Plots"], required: true },
+    unitType: { type: mongoose.Schema.Types.ObjectId, ref: "UnitType" },
+    propertyAvailableFor: { type: String, enum: ["Both", "Rent", "Sale"], required: true },
+    statusoftheproperty: { type: String, enum: ["Occupied", "Vacant"], required: true }, // Add new
+    buildingStatus: { type: String, enum: ["Immediately", "After today"], required: true },
+    proposedAvailabilityDate: { type: Date },
 
-    floorPlans: [{ type: String }],
-    propertyImages: [{ type: String }],
+    // Gallery step - 2
+    propertyImages: [{ type: String, required: true }],
     featuredImages: [{ type: String }],
+    propertyVideos: [{ type: String }], // Add new
     videoUrl: { type: String },
 
+    // Location Details step - 3
+    address: { type: String, required: true },
+    state: { type: mongoose.Schema.Types.ObjectId, ref: "State", required: true },
+    city: { type: mongoose.Schema.Types.ObjectId, ref: "City", required: true },
+    locality: { type: mongoose.Schema.Types.ObjectId, ref: "Locality", required: true },
+    buildingName: { type: String, required: true },
+    wingtower: { type: String }, // Add new
+    floorNo: { type: String },
+    totalfloors: { type: String }, // Add new
+    unitNo: { type: String },
+    pinCode: { type: String },
+    micromarket: { type: mongoose.Schema.Types.ObjectId, ref: "Micromarket", required: true },
+    yearofconstruction: { type: String }, // Add new
+    landmark: { type: String }, // Add new
+    latitude: { type: String, required: true },
+    longitude: { type: String, required: true },
+
+    // Specifications  step - 4
+    // only show Commercial and Residential 
+    areatype: { type: String }, // Add new
+
+    // only all in show 
+    totalArea: { type: String }, // Add new
+
+    // only show Commercial in Category Coworking then show this
+    availableCapacity: { type: String },
+    flexiopendesks: { type: String },// Add new
+    dedicateddesks: { type: String },// Add new
+    managedcabinsofcapacity: { type: String },// Add new
+    meetingroomofcapacity: { type: String },// Add new
+    conferenceroomcapacity: { type: String },// Add new
+
+    // only show Plots 
+    dimensions: { type: String },// Add new
     availableOptions: [availableOptionSchema],
+    floorsallowed: { type: String },// Add new
+    ownership: { type: String },// Add new
+    roadwidth: { type: String },// Add new
+
+    // Pricing Details step - 5
+    openToNegotiation: { type: String, enum: ["Yes", "No"] },
+    ratepersqft: { type: String },
+    preleased: { type: String, enum: ["Yes", "No"] },
+
+    // slected in Rent
+    rent: { type: String },// Add new
+    Deposit: { type: String },// Add new
+    minlockinperiodmonths: { type: String },// Add new
+    modificationofinteriors: { type: String, enum: ["Yes", "No"] },// Add new
+
+    // slected in Sale
+    expectedprice: { type: String },// Add new
+
+    // Amenities Details   step - 6
+    amenities: [amenitiesSchema],
+
+    // Additional Details   step - 7
+    unitcondition: { type: String, enum: ["Bareshell", "Warmshell", "Semi Furnished", "Fully Furnished", "As Is"] },// Add new
+    washrooms: { type: String },// Add new
+    pantrycafeteria: { type: String, enum: ["Yes", "No"] }, // Add new
+    maintenancecharges: { type: String }, // Add new
+    maintenanceperiod: { type: String, enum: ["Monthly", "Quarterly", "One Time", "Per Sqft Monthly"] }, // Add new
+    dedicatedcarparking: { type: String, enum: ["Yes", "No"] }, // Add new
+    dedicatedbikeparking: { type: String }, // Add new
+    openToBrokers: { type: String, enum: ["Yes", "No"] },
+    displayIn: [{ type: String, enum: ["Recently Added", "Featured", "Recently Transacted"] }],
+    propertyType: { type: mongoose.Schema.Types.ObjectId, ref: "PropertyType", required: true },
 
     status: { type: String, enum: ["Pending", "Approved", "Rejected"], default: "Pending" },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },

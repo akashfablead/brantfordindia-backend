@@ -103,17 +103,69 @@ function parseArrayFields(reqBody, fieldNames) {
 const addProperty = async (req, res) => {
     try {
         const {
-            title, listingPropertyAs, propertyAvailableFor, listingType,
-            state, city, buildingName, buildingStatus, proposedAvailabilityDate,
-            displayIn, propertyType, micromarket, locality, address,
-            latitude, longitude, pinCode,
-            inventoryCondition, unitNo, floorNo, unitType, expectedAmount,
-            quotedAmountPerSqft, unitDescription, unitCondition,
-            chargeableArea, availableCapacity,
-            totalArea, configuration, quotedAmountPerSeat, offering,
-            meetingRoomsAvailable,
-            openToBrokers, openToNegotiation, minimumLockInMonths,
-            minimumLicenseMonths, description, videoUrl
+            title,
+            listingPropertyAs,
+            propertyAvailableFor,
+            listingType,
+            state,
+            city,
+            buildingName,
+            buildingStatus,
+            proposedAvailabilityDate,
+            displayIn,
+            propertyType,
+            micromarket,
+            locality,
+            address,
+            latitude,
+            longitude,
+            pinCode,
+            wingtower,
+            statusoftheproperty,
+            unitNo,
+            floorNo,
+            unitType,
+            landmark,
+            yearofconstruction,
+            rent,
+            Deposit,
+            areatype,
+            totalArea,
+            minimumLockInMonths,
+            modificationofinteriors,
+
+
+
+
+            washrooms,
+            pantrycafeteria,
+            maintenancecharges,
+            maintenanceperiod,
+            dedicatedcarparking,
+            dedicatedbikeparking,
+
+
+
+
+
+            openToNegotiation,
+            openToBrokers,
+            expectedprice,
+            ratepersqft,
+            preleased,
+
+            description,
+            videoUrl,
+            availableCapacity,
+            flexiopendesks,
+            dedicateddesks,
+            managedcabinsofcapacity,
+            meetingroomofcapacity,
+            conferenceroomcapacity,
+            dimensions,
+            floorsallowed,
+            ownership,
+            roadwidth
         } = req.body;
         const slug = slugify(title, { lower: true, strict: true });
 
@@ -150,11 +202,9 @@ const addProperty = async (req, res) => {
         );
 
         // Parse arrays from the request body
-        const connectivityArr = parseArrayFields(req.body, ["mode[]", "approxDistance[]"]);
-        const meetingRoomsArr = parseArrayFields(req.body, ["noOfRooms[]", "capacityPerRoom[]"]);
-        const availableOptionsArr = parseArrayFields(req.body, ["option[]", "pricing[]"]);
+        const availableOptionsArr = parseArrayFields(req.body, ["option[]"]);
         const amenitiesArray = parseArrayFields(req.body, ["amenityid[]"]);
-        const residentialUnitArr = parseArrayFields(req.body, ["unitTypeid[]"]);
+
 
         // Create a new property instance
         const newProperty = new Property({
@@ -175,36 +225,49 @@ const addProperty = async (req, res) => {
             micromarket,
             locality,
             address,
+            wingtower,
             latitude,
             longitude,
             pinCode,
-            connectivity: connectivityArr,
-            inventoryCondition,
             unitNo,
             floorNo,
             unitType,
-            expectedAmount,
-            quotedAmountPerSqft,
-            unitDescription,
-            unitCondition,
-            residentialUnitTypes: residentialUnitArr,
-            chargeableArea,
-            availableCapacity,
+            yearofconstruction,
+            landmark,
+            areatype,
             totalArea,
-            configuration,
-            quotedAmountPerSeat,
-            offering,
-            meetingRoomsAvailable,
-            meetingRoomDetails: meetingRoomsArr,
+            rent,
+            Deposit,
+            minimumLockInMonths,
+            modificationofinteriors,
+            availableCapacity,
             amenities: amenitiesArray,
+            washrooms,
+            pantrycafeteria,
+            maintenancecharges,
+            maintenanceperiod,
+            dedicatedcarparking,
+            dedicatedbikeparking,
             openToBrokers,
             openToNegotiation,
-            minimumLockInMonths,
-            minimumLicenseMonths,
+            expectedprice,
+            ratepersqft,
+            preleased,
+            statusoftheproperty,
             description,
-            floorPlans: req.files["floorPlans"]?.map(f => getFullUrl(req, f.path)) || [],
+            availableCapacity,
+            flexiopendesks,
+            dedicateddesks,
+            managedcabinsofcapacity,
+            meetingroomofcapacity,
+            conferenceroomcapacity,
+            dimensions,
+            floorsallowed,
+            ownership,
+            roadwidth,
             propertyImages: req.files["propertyImages"]?.map(f => getFullUrl(req, f.path)) || [],
             featuredImages: req.files["featuredImages"]?.map(f => getFullUrl(req, f.path)) || [],
+            propertyVideos: req.files["propertyVideos"]?.map(f => getFullUrl(req, f.path)) || [],
             videoUrl,
             availableOptions: availableOptionsArr,
             createdBy: req.user?._id || req.user?.id || req.user?.userId
@@ -231,30 +294,25 @@ const editProperty = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const connectivityArr = parseArrayFields(req.body, ["mode[]", "approxDistance[]"]);
-        const meetingRoomsArr = parseArrayFields(req.body, ["noOfRooms[]", "capacityPerRoom[]"]);
-        const availableOptionsArr = parseArrayFields(req.body, ["option[]", "pricing[]"]);
+        const availableOptionsArr = parseArrayFields(req.body, ["option[]"]);
         const amenitiesArray = parseArrayFields(req.body, ["amenityid[]"]);
-        const residentialUnitArr = parseArrayFields(req.body, ["unitTypeid[]"]);
 
         const updatedData = {
             ...req.body,
-            connectivity: connectivityArr,
-            meetingRoomDetails: meetingRoomsArr,
             availableOptions: availableOptionsArr,
             amenities: amenitiesArray,
-            residentialUnitTypes: residentialUnitArr
         };
 
         // Append files if new ones uploaded
-        if (req.files["floorPlans"]) {
-            updatedData.floorPlans = req.files["floorPlans"].map(f => getFullUrl(req, f.path));
-        }
+
         if (req.files["propertyImages"]) {
             updatedData.propertyImages = req.files["propertyImages"].map(f => getFullUrl(req, f.path));
         }
         if (req.files["featuredImages"]) {
             updatedData.featuredImages = req.files["featuredImages"].map(f => getFullUrl(req, f.path));
+        }
+        if (req.files["propertyVideos"]) {
+            updatedData.propertyVideos = req.files["propertyVideos"].map(f => getFullUrl(req, f.path));
         }
 
         const property = await Property.findByIdAndUpdate(id, updatedData, { new: true });
@@ -306,7 +364,6 @@ const getPropertiesByUser = async (req, res) => {
         // Fetch user properties
         const properties = await Property.find({ createdBy: userId })
             .populate("state city propertyType micromarket locality")
-            .populate("residentialUnitTypes.unitTypeid")
             .populate({
                 path: "amenities.amenityid",
                 model: "Amenity",
@@ -359,49 +416,10 @@ const getPropertiesByUser = async (req, res) => {
 };
 
 
-// 📌 Get All Properties for admin
-
-// const getAllProperties = async (req, res) => {
-//     try {
-//         const properties = await Property.find()
-//             .populate("state city propertyType micromarket locality")
-//             .populate("residentialUnitTypes.unitTypeid")
-//             .populate({
-//                 path: "amenities.amenityid",
-//                 model: "Amenity"
-//             })
-//             .sort({ createdAt: -1 })
-
-//         // Inject favourite and compare status
-//         const userId = req.user?._id || req.user?.id || req.user?.userId;
-//         let favIds = [];
-//         if (userId) {
-//             const favs = await Favourites.find({ userId }).select("propertyId");
-//             favIds = favs.map(f => f.propertyId.toString());
-//         }
-
-//         const finalProps = properties.map(p => {
-//             const obj = formatAmenitiesWithFullUrl(req, p.toObject());
-//             obj.favouritestatus = favIds.includes(p._id.toString()) ? 1 : 0;
-//             obj.compareStatus = p.compareStatus || 0; // Inject compareStatus
-//             return obj;
-//         });
-
-//         res.json({
-//             status: true,
-//             message: "Properties fetched successfully",
-//             properties: finalProps
-//         });
-//     } catch (error) {
-//         res.status(500).json({ status: false, message: error.message });
-//     }
-// };
-
 const getAllProperties = async (req, res) => {
     try {
         const properties = await Property.find({ status: "Approved" })
             .populate("state city propertyType micromarket locality")
-            .populate("residentialUnitTypes.unitTypeid")
             .populate({
                 path: "amenities.amenityid",
                 model: "Amenity"
@@ -446,74 +464,6 @@ const getAllProperties = async (req, res) => {
     }
 };
 
-
-// 📌 Get Recently Added Office Spaces (limit 10)
-// const getRecentlyAddedOfficeSpaces = async (req, res) => {
-//     try {
-//         const filter = {
-//             listingType: "Coworking", // "Office Spaces"
-//             status: "Approved"
-//         };
-
-//         // If logged in → exclude own properties
-//         const userId = req.user?._id || req.user?.id || req.user?.userId;
-//         if (userId && mongoose.Types.ObjectId.isValid(userId)) {
-//             filter.createdBy = { $ne: new mongoose.Types.ObjectId(userId) };
-//         }
-
-//         let properties = await Property.find(filter)
-//             .populate("state city propertyType micromarket locality")
-//             .populate("residentialUnitTypes.unitTypeid")
-//             .populate({ path: "amenities.amenityid", model: "Amenity" })
-//             .sort({ createdAt: -1 })
-//             .limit(10)
-//             .lean();
-
-//         if (properties.length > 0 && userId && mongoose.Types.ObjectId.isValid(userId)) {
-//             const propertyIds = properties.map(p => p._id);
-
-//             // ✅ Fetch all favourites in one query
-//             const favourites = await Favourites.find({
-//                 userId: new mongoose.Types.ObjectId(userId),
-//                 propertyId: { $in: propertyIds }
-//             }).lean();
-
-//             const favouriteSet = new Set(favourites.map(f => String(f.propertyId)));
-
-//             // ✅ Fetch all compared properties for this user
-//             const compareList = await Compare.find({
-//                 userId: new mongoose.Types.ObjectId(userId),
-//                 propertyId: { $in: propertyIds }
-//             }).lean();
-
-//             const compareSet = new Set(compareList.map(c => String(c.propertyId)));
-
-//             // ✅ Inject favouritestatus & compareStatus
-//             properties = properties.map(p => ({
-//                 ...p,
-//                 favouritestatus: favouriteSet.has(String(p._id)) ? 1 : 0,
-//                 compareStatus: compareSet.has(String(p._id)) ? 1 : 0
-//             }));
-//         } else {
-//             // If no user → mark all as not favourite and not in compare list
-//             properties = properties.map(p => ({
-//                 ...p,
-//                 favouritestatus: 0,
-//                 compareStatus: 0
-//             }));
-//         }
-
-//         res.json({
-//             status: true,
-//             message: "Recently Added Office Spaces fetched successfully",
-//             properties
-//         });
-//     } catch (error) {
-//         console.error("Error fetching recently added office spaces:", error);
-//         res.status(500).json({ status: false, message: error.message });
-//     }
-// };
-
 const getPropertiesByCategory = async (req, res) => {
     try {
         const { category } = req.query; // "recent" | "mostSearchedOffice" | "mostSearchedResidential"
@@ -550,7 +500,6 @@ const getPropertiesByCategory = async (req, res) => {
 
         let properties = await Property.find(filter)
             .populate("state city propertyType micromarket locality")
-            .populate("residentialUnitTypes.unitTypeid")
             .populate({ path: "amenities.amenityid", model: "Amenity" })
             .sort(sort)
             .limit(limit)
@@ -598,47 +547,6 @@ const getPropertiesByCategory = async (req, res) => {
     }
 };
 
-
-
-// const getstatusProperties = async (req, res) => {
-//     try {
-//         const filter = {};
-
-//         // ✅ Apply status filter if provided, else default to Approved
-//         if (req.query.status) {
-//             filter.status = req.query.status;
-//         } else {
-//             filter.status = "Approved";
-//         }
-
-//         // ✅ Exclude properties created by the current user
-//         const userId = req.user?._id || req.user?.id || req.user?.userId;
-//         if (userId) {
-//             filter.createdBy = { $ne: new mongoose.Types.ObjectId(userId) };
-//         }
-
-//         const properties = await Property.find(filter)
-//             .populate("state city propertyType micromarket locality")
-//             .populate("residentialUnitTypes.unitTypeid")
-//             .populate({
-//                 path: "amenities.amenityid",
-//                 model: "Amenity"
-//             })
-//             .lean(); // Use lean() for plain JS objects;
-
-//         filtersperties = await injectFavouriteStatus(req, properties);
-
-//         res.json({
-//             status: true,
-//             message: "Properties fetched successfully",
-//             properties: filtersperties || []
-//         });
-//     } catch (error) {
-//         res.status(500).json({ status: false, message: error.message });
-//     }
-// };
-
-
 // 📌 Get All Properties 
 
 const getstatusProperties = async (req, res) => {
@@ -656,7 +564,6 @@ const getstatusProperties = async (req, res) => {
 
         let properties = await Property.find(filter)
             .populate("state city propertyType micromarket locality")
-            .populate("residentialUnitTypes.unitTypeid")
             .populate({
                 path: "amenities.amenityid",
                 model: "Amenity"
@@ -759,7 +666,6 @@ const getAllPropertiesfilter = async (req, res) => {
 
         let properties = await Property.find(filter)
             .populate("state city propertyType micromarket locality")
-            .populate("residentialUnitTypes.unitTypeid")
             .populate({
                 path: "amenities.amenityid",
                 model: "Amenity"
@@ -787,7 +693,6 @@ const getPropertyById = async (req, res) => {
         const { id } = req.params;
         let property = await Property.findById(id)
             .populate("state city propertyType micromarket locality")
-            .populate("residentialUnitTypes.unitTypeid")
             .populate({
                 path: "amenities.amenityid",
                 model: "Amenity"
@@ -836,7 +741,6 @@ const getPropertyBySlug = async (req, res) => {
         const { slug } = req.params;
         let property = await Property.findOne({ slug })
             .populate("state city propertyType micromarket locality")
-            .populate("residentialUnitTypes.unitTypeid")
             .populate({ path: "amenities.amenityid", model: "Amenity" })
             .lean();
 
@@ -875,50 +779,6 @@ const getPropertyBySlug = async (req, res) => {
 };
 
 
-// 📌 Get properties by CitySlug
-// const getPropertiesByCitySlug = async (req, res) => {
-//     try {
-//         const { slug } = req.params;
-//         const city = await City.findOne({ slug });
-//         if (!city) {
-//             return res.status(404).json({ status: false, message: "City not found" });
-//         }
-
-//         let properties = await Property.find({ city: city._id })
-//             .populate("state city propertyType micromarket locality")
-//             .populate("residentialUnitTypes.unitTypeid")
-//             .populate({
-//                 path: "amenities.amenityid",
-//                 model: "Amenity"
-//             })
-//             .sort({ createdAt: -1 });
-
-//         // Inject favourite and compare status
-//         const userId = req.user?._id || req.user?.id || req.user?.userId;
-//         let favIds = [];
-//         if (userId) {
-//             const favs = await Favourites.find({ userId }).select("propertyId");
-//             favIds = favs.map(f => f.propertyId.toString());
-//         }
-
-//         properties = properties.map(p => {
-//             const obj = formatAmenitiesWithFullUrl(req, p.toObject());
-//             obj.favouritestatus = favIds.includes(p._id.toString()) ? 1 : 0;
-//             obj.compareStatus = p.compareStatus || 0; // Inject compareStatus
-//             return obj;
-//         });
-
-//         res.json({
-//             status: true,
-//             message: "Properties fetched successfully",
-//             properties
-//         });
-//     } catch (error) {
-//         res.status(500).json({ status: false, message: error.message });
-//     }
-// };
-
-
 // 📌 Get Properties by PropertyCitySlug
 const getPropertiesByCitySlug = async (req, res) => {
     try {
@@ -930,7 +790,6 @@ const getPropertiesByCitySlug = async (req, res) => {
             status: "Approved"
         })
             .populate("state city propertyType micromarket locality")
-            .populate("residentialUnitTypes.unitTypeid")
             .populate({ path: "amenities.amenityid", model: "Amenity" })
             .sort({ createdAt: -1 });
 
@@ -987,7 +846,6 @@ const getPropertiesByMicromarketSlug = async (req, res) => {
             status: "Approved"
         })
             .populate("state city propertyType micromarket locality")
-            .populate("residentialUnitTypes.unitTypeid")
             .populate({ path: "amenities.amenityid", model: "Amenity" })
             .sort({ createdAt: -1 });
 
@@ -1066,38 +924,53 @@ const deleteAvailableOption = async (req, res) => {
     }
 };
 
-// 📌 Delete Meeting Room
-const deleteMeetingRoom = async (req, res) => {
+// 📌 Delete Property Media (propertyVideos , featuredImages , propertyImages)
+const deletePropertyMedia = async (req, res) => {
     try {
-        const { id, roomId } = req.params;
-        const property = await Property.findById(id);
-        if (!property) return res.status(404).json({ status: false, message: "Property not found" });
+        const { id } = req.params;
+        const { type, index } = req.body;
 
-        property.meetingRoomDetails = property.meetingRoomDetails.filter(room => room._id.toString() !== roomId);
+        // Validate the type
+        if (!["featuredImages", "propertyImages", "propertyVideos"].includes(type)) {
+            return res.status(400).json({
+                status: false,
+                message: "Invalid media type. Must be one of: featuredImages, propertyImages, propertyVideos",
+            });
+        }
+
+        // Find the property
+        const property = await Property.findById(id);
+
+        if (!property) {
+            return res.status(404).json({
+                status: false,
+                message: "Property not found",
+            });
+        }
+
+        // Check if the index is valid
+        if (!property[type] || index < 0 || index >= property[type].length) {
+            return res.status(400).json({
+                status: false,
+                message: "Invalid index or media type",
+            });
+        }
+
+        // Remove the media at the specified index
+        property[type].splice(index, 1);
+
+        // Save the updated property
         await property.save();
 
-        res.json({ status: true, message: "Meeting room deleted successfully", property });
+        res.status(200).json({
+            status: true,
+            message: "Media deleted successfully",
+            property,
+        });
     } catch (error) {
         res.status(500).json({ status: false, message: error.message });
     }
 };
-
-// 📌 Delete Connectivity 
-const deleteConnectivity = async (req, res) => {
-    try {
-        const { id, connectId } = req.params;
-        const property = await Property.findById(id);
-        if (!property) return res.status(404).json({ status: false, message: "Property not found" });
-
-        property.connectivity = property.connectivity.filter(conn => conn._id.toString() !== connectId);
-        await property.save();
-
-        res.json({ status: true, message: "Connectivity deleted successfully", property });
-    } catch (error) {
-        res.status(500).json({ status: false, message: error.message });
-    }
-};
-
 
 // 📌 Toggle Favourite (Add/Remove)
 const toggleFavourite = async (req, res) => {
@@ -1192,93 +1065,6 @@ const getFavourites = async (req, res) => {
     }
 };
 
-// 📌 Search Properties
-// const searchProperties = async (req, res) => {
-//     try {
-//         const { city, location, listingType, propertyAvailableFor, unitType, expectedAmount } = req.query;
-//         const filter = { status: "Approved" };
-
-//         // ✅ Convert city string to ObjectId(s)
-//         let cityIds = [];
-//         if (city) {
-//             cityIds = await City.find({ name: new RegExp(city, "i") }).distinct("_id");
-//             if (cityIds.length) filter.city = { $in: cityIds };
-//         }
-
-//         // ✅ Convert unitType string to ObjectId if provided
-//         if (unitType) {
-//             const unitTypeObj = await mongoose.model("UnitType").findOne({ name: new RegExp(unitType, "i") });
-//             if (unitTypeObj) filter.unitType = unitTypeObj._id;
-//         }
-
-//         // ✅ Location search (micromarket/locality/pinCode)
-//         if (location) {
-//             const locationRegex = new RegExp(location, "i");
-
-//             const [microIds, localityIds] = await Promise.all([
-//                 Micromarket.find({ name: locationRegex }).distinct("_id"),
-//                 Locality.find({ name: locationRegex }).distinct("_id"),
-//             ]);
-
-//             filter.$or = [
-//                 ...(cityIds.length ? [{ city: { $in: cityIds } }] : []),
-//                 ...(microIds.length ? [{ micromarket: { $in: microIds } }] : []),
-//                 ...(localityIds.length ? [{ locality: { $in: localityIds } }] : []),
-//                 { pinCode: locationRegex },
-//             ];
-//         }
-
-//         // ✅ Other optional filters
-//         if (listingType) filter.listingType = listingType;
-//         if (propertyAvailableFor) filter.propertyAvailableFor = propertyAvailableFor;
-
-//         if (expectedAmount) {
-//             if (expectedAmount.includes("-")) {
-//                 const [min, max] = expectedAmount.split("-").map(Number);
-//                 filter.expectedAmount = { $gte: min, $lte: max };
-//             } else {
-//                 filter.expectedAmount = Number(expectedAmount);
-//             }
-//         }
-
-//         // ✅ Exclude properties created by the current user (optional)
-//         const userId = req.user?._id;
-//         if (userId) filter.createdBy = { $ne: mongoose.Types.ObjectId(userId) };
-
-//         // ✅ Fetch properties with safe populates
-//         let properties = await Property.find(filter)
-//             .populate("state city micromarket locality propertyType unitType", null, null, { strictPopulate: false })
-//             .populate("residentialUnitTypes.unitTypeid", null, null, { strictPopulate: false })
-//             .populate("amenities.amenityid", null, null, { strictPopulate: false })
-//             .populate("createdBy", null, null, { strictPopulate: false })
-//             .lean();
-
-//         // ✅ Format amenities URLs
-//         properties = properties.map((p) => formatAmenitiesWithFullUrl(req, p));
-
-//         if (!properties.length) {
-//             return res.status(200).json({
-//                 status: true,
-//                 message: "No properties found for this search criteria",
-//                 properties: [],
-//             });
-//         }
-
-//         res.json({
-//             status: true,
-//             message: "Properties fetched successfully",
-//             properties,
-//         });
-//     } catch (error) {
-//         console.error("Error searching properties:", error);
-//         res.status(500).json({
-//             status: false,
-//             message: "Failed to search by filters. Please check query params.",
-//             error: error.message,
-//         });
-//     }
-// };
-
 const searchProperties = async (req, res) => {
     try {
         const { city, location, listingType, propertyAvailableFor, unitType, expectedAmount } = req.query;
@@ -1334,7 +1120,6 @@ const searchProperties = async (req, res) => {
         // ✅ Fetch properties with safe populates
         let properties = await Property.find(filter)
             .populate("state city micromarket locality propertyType unitType", null, null, { strictPopulate: false })
-            .populate("residentialUnitTypes.unitTypeid", null, null, { strictPopulate: false })
             .populate("amenities.amenityid", null, null, { strictPopulate: false })
             .populate("createdBy", null, null, { strictPopulate: false })
             .lean();
@@ -1410,7 +1195,6 @@ const getSimilarProperties = async (req, res) => {
 
         let similarProperties = await Property.find(filter)
             .populate("state city propertyType micromarket locality")
-            .populate("residentialUnitTypes.unitTypeid")
             .populate({
                 path: "amenities.amenityid",
                 model: "Amenity"
@@ -1460,65 +1244,6 @@ const getSimilarProperties = async (req, res) => {
         res.status(500).json({ status: false, message: error.message });
     }
 };
-
-
-// GET top cities by property type
-// const getTopCitiesByPropertyType = async (req, res) => {
-//     try {
-//         const { propertyTypeId } = req.params;
-//         let matchStage = { status: "Approved" };
-
-//         if (propertyTypeId !== "all") {
-//             if (!mongoose.Types.ObjectId.isValid(propertyTypeId)) {
-//                 return res.status(400).json({ status: false, message: "Invalid PropertyType ID" });
-//             }
-//             matchStage.propertyType = new mongoose.Types.ObjectId(propertyTypeId);
-//         }
-
-//         // Aggregate properties by city
-//         const topCities = await Property.aggregate([
-//             { $match: matchStage },
-//             { $group: { _id: "$city", propertyCount: { $sum: 1 } } },
-//             { $sort: { propertyCount: -1 } },
-//             { $limit: 10 },
-//             {
-//                 $lookup: {
-//                     from: "cities",
-//                     localField: "_id",
-//                     foreignField: "_id",
-//                     as: "cityDetails"
-//                 }
-//             },
-//             { $unwind: "$cityDetails" },
-//             {
-//                 $project: {
-//                     _id: 0,
-//                     cityId: "$cityDetails._id",
-//                     cityName: "$cityDetails.name",
-//                     cityImage: "$cityDetails.image",
-//                     propertyCount: 1
-//                 }
-//             }
-//         ]);
-
-//         // Construct full image URLs
-//         const citiesWithFullPath = topCities.map(city => ({
-//             ...city,
-//             cityImage: city.cityImage ? `${process.env.BACKEND_URL}${city.cityImage}` : null
-//         }));
-
-//         res.status(200).json({
-//             status: true,
-//             message: propertyTypeId === "all"
-//                 ? "Top cities (all property types) fetched successfully"
-//                 : "Top cities fetched successfully",
-//             topCities: citiesWithFullPath
-//         });
-//     } catch (error) {
-//         console.error("Error in getTopCitiesByPropertyType:", error);
-//         res.status(500).json({ status: false, message: error.message });
-//     }
-// };
 
 const getTopCitiesByPropertyType = async (req, res) => {
     try {
@@ -1653,7 +1378,6 @@ const getCompareProperties = async (req, res) => {
         // Fetch only the properties that are in the compare list
         const properties = await Property.find({ _id: { $in: compareIds } })
             .populate("city state propertyType micromarket locality")
-            .populate("residentialUnitTypes.unitTypeid")
             .populate({
                 path: "amenities.amenityid",
                 model: "Amenity"
@@ -1701,8 +1425,7 @@ module.exports = {
     getPropertyBySlug,
     deleteProperty,
     deleteAvailableOption,
-    deleteMeetingRoom,
-    deleteConnectivity,
+    deletePropertyMedia,
     searchProperties,
     getSimilarProperties,
     getTopCitiesByPropertyType,
