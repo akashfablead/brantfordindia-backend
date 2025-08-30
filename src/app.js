@@ -113,6 +113,8 @@ app.use("/api/owners", ownerRoutes);
 app.use("/api/brokers", brokerRoutes);
 
 // fake route for testing
-app.get("/", (req, res) => res.send("Hello World!"));
+app.get("/", (req, res) => {
+    res.send("Backend is running 🚀");
+});
 
 module.exports = app;
