@@ -80,7 +80,7 @@ const propertySchema = new mongoose.Schema({
     rent: { type: String },// Add new
     Deposit: { type: String },// Add new
     minlockinperiodmonths: { type: String },// Add new
-    modificationofinteriors: { type: String, enum: ["Yes", "No"] },// Add new
+    modificationofinteriors: { type: String },// Add new , enum: ["Yes", "No"] 
 
     // slected in Sale
     expectedprice: { type: String },// Add new
