@@ -8,17 +8,6 @@ const Locality = require("../models/Master/Locality");
 const PropertyEnquiryList = require("../models/Enquiry/PropertyEnquiryList");
 const Favourites = require("../models/Favourites");
 const Compare = require("../models/Compare");
-const UnitType = require("../models/Master/UnitType");
-
-const getFullUrl = (req, relativePath) => {
-    if (!relativePath) return null;
-
-    // Replace backslashes with forward slashes and remove any starting slash
-    const cleanPath = relativePath.replace(/\\/g, '/').replace(/^\/+/, "");
-
-    return `${req.protocol}://${req.get("host")}/${cleanPath}`;
-};
-
 
 // 📌 Convert amenities image to full URL
 
@@ -26,11 +15,17 @@ const formatAmenitiesWithFullUrl = (req, property) => {
     // Ensure property is a plain object
     const formatted = { ...property };
 
+    // Helper function to prepend the backend URL
+    const getFullUrl = (path) => {
+        if (!path) return null;
+        return path.startsWith('http') ? path : `${process.env.BACKEND_URL}${path}`;
+    };
+
     // Format amenities images
     if (formatted.amenities && Array.isArray(formatted.amenities)) {
         formatted.amenities = formatted.amenities.map(a => {
             if (a.amenityid && a.amenityid.image) {
-                a.amenityid.image = getFullUrl(req, a.amenityid.image);
+                a.amenityid.image = getFullUrl(a.amenityid.image);
             }
             return a;
         });
@@ -38,17 +33,32 @@ const formatAmenitiesWithFullUrl = (req, property) => {
 
     // Format city image (single object case)
     if (formatted.city && formatted.city.image) {
-        formatted.city.image = getFullUrl(req, formatted.city.image);
+        formatted.city.image = getFullUrl(formatted.city.image);
     }
 
     // If city is an array (just in case some APIs return it that way)
     if (Array.isArray(formatted.city)) {
         formatted.city = formatted.city.map(c => {
             if (c.image) {
-                c.image = getFullUrl(req, c.image);
+                c.image = getFullUrl(c.image);
             }
             return c;
         });
+    }
+
+    // Format property images
+    if (formatted.propertyImages && Array.isArray(formatted.propertyImages)) {
+        formatted.propertyImages = formatted.propertyImages.map(image => getFullUrl(image));
+    }
+
+    // Format featured images
+    if (formatted.featuredImages && Array.isArray(formatted.featuredImages)) {
+        formatted.featuredImages = formatted.featuredImages.map(image => getFullUrl(image));
+    }
+
+    // Format property videos
+    if (formatted.propertyVideos && Array.isArray(formatted.propertyVideos)) {
+        formatted.propertyVideos = formatted.propertyVideos.map(video => getFullUrl(video));
     }
 
     return formatted;
@@ -255,9 +265,9 @@ const addProperty = async (req, res) => {
             floorsallowed,
             ownership,
             roadwidth,
-            propertyImages: req.files["propertyImages"]?.map(f => getFullUrl(req, f.path)) || [],
-            featuredImages: req.files["featuredImages"]?.map(f => getFullUrl(req, f.path)) || [],
-            propertyVideos: req.files["propertyVideos"]?.map(f => getFullUrl(req, f.path)) || [],
+            propertyImages: req.files["propertyImages"]?.map(f => `/${f.path.replace(/\\/g, "/")}`) || [],
+            featuredImages: req.files["featuredImages"]?.map(f => `/${f.path.replace(/\\/g, "/")}`) || [],
+            propertyVideos: req.files["propertyVideos"]?.map(f => `/${f.path.replace(/\\/g, "/")}`) || [],
             videoUrl,
             availableOptions: availableOptionsArr,
             createdBy: req.user?._id || req.user?.id || req.user?.userId
@@ -293,16 +303,14 @@ const editProperty = async (req, res) => {
             amenities: amenitiesArray,
         };
 
-        // Append files if new ones uploaded
-
         if (req.files["propertyImages"]) {
-            updatedData.propertyImages = req.files["propertyImages"].map(f => getFullUrl(req, f.path));
+            updatedData.propertyImages = req.files["propertyImages"].map(f => `/${f.path.replace(/\\/g, "/")}`);
         }
         if (req.files["featuredImages"]) {
-            updatedData.featuredImages = req.files["featuredImages"].map(f => getFullUrl(req, f.path));
+            updatedData.featuredImages = req.files["featuredImages"].map(f => `/${f.path.replace(/\\/g, "/")}`);
         }
         if (req.files["propertyVideos"]) {
-            updatedData.propertyVideos = req.files["propertyVideos"].map(f => getFullUrl(req, f.path));
+            updatedData.propertyVideos = req.files["propertyVideos"].map(f => `/${f.path.replace(/\\/g, "/")}`);
         }
 
         const property = await Property.findByIdAndUpdate(id, updatedData, { new: true });
@@ -315,6 +323,7 @@ const editProperty = async (req, res) => {
         res.status(500).json({ status: false, message: error.message });
     }
 };
+
 
 // 📌 Change Status (Approve / Reject / Pending)
 const changeStatus = async (req, res) => {
@@ -413,31 +422,22 @@ const getAllProperties = async (req, res) => {
             })
             .sort({ createdAt: -1 });
 
-        // Get logged-in user ID
         const userId = req.user?._id || req.user?.id || req.user?.userId;
-
         let favIds = [];
         let compareIds = [];
 
         if (userId) {
-            // Fetch favourites
             const favs = await Favourites.find({ userId }).select("propertyId");
             favIds = favs.map(f => f.propertyId.toString());
 
-            // Fetch compare properties
             const compares = await Compare.find({ userId }).select("propertyId");
             compareIds = compares.map(c => c.propertyId.toString());
         }
 
         const finalProps = properties.map(p => {
             const obj = formatAmenitiesWithFullUrl(req, p.toObject());
-
-            // inject favourite status
             obj.favouritestatus = favIds.includes(p._id.toString()) ? 1 : 0;
-
-            // inject compare status only if compared
             obj.compareStatus = compareIds.includes(p._id.toString()) ? 1 : 0;
-
             return obj;
         });
 
@@ -450,6 +450,7 @@ const getAllProperties = async (req, res) => {
         res.status(500).json({ status: false, message: error.message });
     }
 };
+
 
 const getPropertiesByCategory = async (req, res) => {
     try {
@@ -1246,17 +1247,13 @@ const getTopCitiesByPropertyType = async (req, res) => {
 
         const topCities = await Property.aggregate([
             { $match: matchStage },
-
-            // ✅ Group by City ObjectId (always consistent)
             {
                 $group: {
-                    _id: "$city",   // <-- Direct City ref from Property
+                    _id: "$city",
                     propertyCount: { $sum: 1 },
-                    sampleSlug: { $first: "$PropertyCitySlug" } // keep one slug reference
+                    sampleSlug: { $first: "$PropertyCitySlug" }
                 }
             },
-
-            // ✅ Lookup actual city details
             {
                 $lookup: {
                     from: "cities",
@@ -1266,17 +1263,15 @@ const getTopCitiesByPropertyType = async (req, res) => {
                 }
             },
             { $unwind: "$cityDetails" },
-
             { $sort: { propertyCount: -1 } },
             { $limit: 10 },
-
             {
                 $project: {
                     _id: 0,
                     cityId: "$cityDetails._id",
-                    citySlug: "$sampleSlug",       // property slug (reference only)
+                    citySlug: "$sampleSlug",
                     cityName: "$cityDetails.name",
-                    cityImage: "$cityDetails.image",
+                    cityImage: { $ifNull: ["$cityDetails.image", null] },
                     propertyCount: 1
                 }
             }
@@ -1299,6 +1294,7 @@ const getTopCitiesByPropertyType = async (req, res) => {
         res.status(500).json({ status: false, message: error.message });
     }
 };
+
 
 const toggleCompareProperty = async (req, res) => {
     try {
