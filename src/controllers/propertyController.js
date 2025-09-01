@@ -316,9 +316,6 @@ const editProperty = async (req, res) => {
     }
 };
 
-
-
-
 // 📌 Change Status (Approve / Reject / Pending)
 const changeStatus = async (req, res) => {
     try {
