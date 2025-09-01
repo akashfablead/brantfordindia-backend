@@ -38,7 +38,6 @@ const getLogo = async (req, res) => {
             ? `${process.env.BACKEND_URL}${logo.image}`
             : null;
 
-        console.log("Full Image URL:", fullImageUrl);
 
         res.json({
             status: true,
