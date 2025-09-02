@@ -4,7 +4,8 @@ const {
     editClientSlider,
     getAllClientSliders,
     getClientSliderById,
-    deleteClientSlider
+    deleteClientSlider,
+    getAllClientSlidersActive
 } = require("../../controllers/mastercontrollers/clientSliderController");
 const createMulterUpload = require("../../config/multer");
 const { authenticateToken } = require("../../middleware/authMiddleware");
@@ -14,6 +15,7 @@ const router = express.Router();
 router.post("/", upload.single("logo"), authenticateToken, addClientSlider);
 router.put("/:id", upload.single("logo"), authenticateToken, editClientSlider);
 router.get("/", getAllClientSliders);
+router.get("/active", getAllClientSlidersActive);
 router.get("/:id", authenticateToken, getClientSliderById);
 router.delete("/:id", authenticateToken, deleteClientSlider);
 

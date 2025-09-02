@@ -452,10 +452,92 @@ const getAllProperties = async (req, res) => {
 };
 
 
+// const getPropertiesByCategory = async (req, res) => {
+//     try {
+//         const { category } = req.query; // "recent" | "mostSearchedOffice" | "mostSearchedResidential"
+
+//         let filter = { status: "Approved" };
+//         let sort = {};
+//         let limit = 10;
+
+//         // Apply category-specific logic
+//         if (category === "recent") {
+//             filter.listingType = "Coworking"; // Office spaces (coworking only)
+//             sort = { createdAt: -1 };
+//         }
+//         else if (category === "mostSearchedOffice") {
+//             filter.listingType = "Office"; // Office spaces
+//             sort = { searchCount: -1 }; // Assume you store search count in property
+//         }
+//         else if (category === "mostSearchedResidential") {
+//             filter.listingType = "Residential"; // Residential spaces
+//             sort = { searchCount: -1 };
+//         }
+//         else {
+//             return res.status(400).json({
+//                 status: false,
+//                 message: "Invalid category type"
+//             });
+//         }
+
+//         // Exclude own properties if user logged in
+//         const userId = req.user?._id || req.user?.id || req.user?.userId;
+//         if (userId && mongoose.Types.ObjectId.isValid(userId)) {
+//             filter.createdBy = { $ne: new mongoose.Types.ObjectId(userId) };
+//         }
+
+//         let properties = await Property.find(filter)
+//             .populate("state city propertyType micromarket locality")
+//             .populate({ path: "amenities.amenityid", model: "Amenity" })
+//             .sort(sort)
+//             .limit(limit)
+//             .lean();
+
+//         // Favourite & Compare check
+//         if (properties.length > 0 && userId && mongoose.Types.ObjectId.isValid(userId)) {
+//             const propertyIds = properties.map(p => p._id);
+
+//             const favourites = await Favourites.find({
+//                 userId: new mongoose.Types.ObjectId(userId),
+//                 propertyId: { $in: propertyIds }
+//             }).lean();
+
+//             const favouriteSet = new Set(favourites.map(f => String(f.propertyId)));
+
+//             const compareList = await Compare.find({
+//                 userId: new mongoose.Types.ObjectId(userId),
+//                 propertyId: { $in: propertyIds }
+//             }).lean();
+
+//             const compareSet = new Set(compareList.map(c => String(c.propertyId)));
+
+//             properties = properties.map(p => ({
+//                 ...p,
+//                 favouritestatus: favouriteSet.has(String(p._id)) ? 1 : 0,
+//                 compareStatus: compareSet.has(String(p._id)) ? 1 : 0
+//             }));
+//         } else {
+//             properties = properties.map(p => ({
+//                 ...p,
+//                 favouritestatus: 0,
+//                 compareStatus: 0
+//             }));
+//         }
+
+//         res.json({
+//             status: true,
+//             message: `${category} properties fetched successfully`,
+//             properties
+//         });
+//     } catch (error) {
+//         console.error("Error fetching properties:", error);
+//         res.status(500).json({ status: false, message: error.message });
+//     }
+// };
+
 const getPropertiesByCategory = async (req, res) => {
     try {
         const { category } = req.query; // "recent" | "mostSearchedOffice" | "mostSearchedResidential"
-
         let filter = { status: "Approved" };
         let sort = {};
         let limit = 10;
@@ -464,16 +546,13 @@ const getPropertiesByCategory = async (req, res) => {
         if (category === "recent") {
             filter.listingType = "Coworking"; // Office spaces (coworking only)
             sort = { createdAt: -1 };
-        }
-        else if (category === "mostSearchedOffice") {
+        } else if (category === "mostSearchedOffice") {
             filter.listingType = "Office"; // Office spaces
             sort = { searchCount: -1 }; // Assume you store search count in property
-        }
-        else if (category === "mostSearchedResidential") {
+        } else if (category === "mostSearchedResidential") {
             filter.listingType = "Residential"; // Residential spaces
             sort = { searchCount: -1 };
-        }
-        else {
+        } else {
             return res.status(400).json({
                 status: false,
                 message: "Invalid category type"
@@ -486,6 +565,7 @@ const getPropertiesByCategory = async (req, res) => {
             filter.createdBy = { $ne: new mongoose.Types.ObjectId(userId) };
         }
 
+        // Fetch properties
         let properties = await Property.find(filter)
             .populate("state city propertyType micromarket locality")
             .populate({ path: "amenities.amenityid", model: "Amenity" })
@@ -493,22 +573,22 @@ const getPropertiesByCategory = async (req, res) => {
             .limit(limit)
             .lean();
 
+        // Format properties with full URLs
+        properties = properties.map(property => formatAmenitiesWithFullUrl(req, property));
+
         // Favourite & Compare check
         if (properties.length > 0 && userId && mongoose.Types.ObjectId.isValid(userId)) {
             const propertyIds = properties.map(p => p._id);
-
             const favourites = await Favourites.find({
                 userId: new mongoose.Types.ObjectId(userId),
                 propertyId: { $in: propertyIds }
             }).lean();
-
             const favouriteSet = new Set(favourites.map(f => String(f.propertyId)));
 
             const compareList = await Compare.find({
                 userId: new mongoose.Types.ObjectId(userId),
                 propertyId: { $in: propertyIds }
             }).lean();
-
             const compareSet = new Set(compareList.map(c => String(c.propertyId)));
 
             properties = properties.map(p => ({
@@ -535,8 +615,8 @@ const getPropertiesByCategory = async (req, res) => {
     }
 };
 
-// 📌 Get All Properties 
 
+// 📌 Get All Properties 
 const getstatusProperties = async (req, res) => {
     try {
         const filter = {};

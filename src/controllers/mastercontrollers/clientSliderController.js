@@ -72,6 +72,20 @@ const getAllClientSliders = async (req, res) => {
     }
 };
 
+const getAllClientSlidersActive = async (req, res) => {
+    try {
+        const sliders = await ClientSlider.find( { status: "active" });
+        const updated = sliders.map(s => ({
+            ...s.toObject(),
+            logo: s.logo ? `${process.env.BACKEND_URL}${s.logo}` : null
+        }));
+
+        res.json({ status: true, message: "Sliders fetched successfully", sliders: updated });
+    } catch (error) {
+        res.status(500).json({ status: false, message: error.message });
+    }
+};
+
 // Get Slider by ID
 const getClientSliderById = async (req, res) => {
     try {
@@ -115,6 +129,7 @@ const deleteClientSlider = async (req, res) => {
 module.exports = {
     addClientSlider,
     editClientSlider,
+    getAllClientSlidersActive,
     getAllClientSliders,
     getClientSliderById,
     deleteClientSlider
