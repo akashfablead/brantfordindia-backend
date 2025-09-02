@@ -615,7 +615,6 @@ const getPropertiesByCategory = async (req, res) => {
     }
 };
 
-
 // 📌 Get All Properties 
 const getstatusProperties = async (req, res) => {
     try {
