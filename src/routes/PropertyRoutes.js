@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { addProperty, editProperty, changeStatus, getAllProperties, getPropertyById, getPropertyBySlug, deleteProperty, deleteAvailableOption, deleteMeetingRoom, deleteConnectivity, getAllPropertiesfilter, getRecentlyAddedOfficeSpaces, toggleFavourite, getFavourites, getstatusProperties, getPropertiesByCitySlug, getPropertiesByMicromarketSlug, searchProperties, getSimilarProperties, getTopCitiesByPropertyType, toggleCompareProperty, getCompareProperties, getPropertiesByUser, getPropertiesByCategory, deletePropertyMedia } = require("../controllers/propertyController");
+const { addProperty, editProperty, changeStatus, getAllProperties, getPropertyById, getPropertyBySlug, deleteProperty, deleteAvailableOption, deleteMeetingRoom, deleteConnectivity, getAllPropertiesfilter, getRecentlyAddedOfficeSpaces, toggleFavourite, getFavourites, getstatusProperties, getPropertiesByCitySlug, getPropertiesByMicromarketSlug, searchProperties, getSimilarProperties, getTopCitiesByPropertyType, toggleCompareProperty, getCompareProperties, getPropertiesByUser, getPropertiesByCategory, deletePropertyMedia, getAllPropertiesAdmin } = require("../controllers/propertyController");
 const { authenticateToken } = require("../middleware/authMiddleware");
 const optionalAuth = require("../middleware/optionalAuth");
 const createMulterUpload = require("../config/multer");
@@ -13,6 +13,9 @@ const propertyUploads = upload.fields([
     { name: "featuredImages", maxCount: 50 },
     { name: "propertyVideos", maxCount: 10 },
 ]);
+
+// Get admin properties
+router.get("/all-admin-status", upload.none(), getAllPropertiesAdmin);
 
 // CRUD routes
 router.post("/", authenticateToken, propertyUploads, addProperty);
@@ -54,5 +57,7 @@ router.get("/all", optionalAuth, getAllProperties);
 router.get("/:id", optionalAuth, getPropertyById);
 router.get("/similar/:id", optionalAuth, getSimilarProperties);
 router.get("/top-cities/:propertyTypeId", getTopCitiesByPropertyType);
+
+
 
 module.exports = router;
