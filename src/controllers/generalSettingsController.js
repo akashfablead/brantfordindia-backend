@@ -2,10 +2,14 @@ const path = require("path");
 const GeneralSettings = require("../models/GeneralSettings");
 
 // Helper to build full URL
-const getFullUrl = (req, filePath) => {
+const getFullUrl = (filePath) => {
     if (!filePath) return "";
-    return `${req.protocol}://${req.get("host")}/${filePath.replace(/\\/g, "/")}`;
+    // If it's already a full URL, return it as is
+    if (filePath.startsWith("http")) return filePath;
+    // Construct the full URL using the backend base URL
+    return `${process.env.BACKEND_URL}/${filePath.replace(/\\/g, "/")}`;
 };
+
 
 // Helper
 function parseArrayFields(reqBody, fieldNames) {
