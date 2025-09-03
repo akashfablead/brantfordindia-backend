@@ -1,6 +1,5 @@
 const Micromarket = require("../../models/Master/Micromarket");
 
-
 // Add Micromarket
 const addMicromarket = async (req, res) => {
     try {

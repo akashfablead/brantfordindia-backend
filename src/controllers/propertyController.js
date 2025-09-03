@@ -331,7 +331,7 @@ const changeStatus = async (req, res) => {
         const { id } = req.params;
         const { status } = req.body;
 
-        if (!["Pending", "Approved", "Rejected"].includes(status)) {
+        if (!["Pending", "Approved", "Rejected", "Verified"].includes(status)) {
             return res.status(400).json({ status: false, message: "Invalid status" });
         }
 

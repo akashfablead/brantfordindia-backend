@@ -100,7 +100,7 @@ const propertySchema = new mongoose.Schema({
     displayIn: [{ type: String, enum: ["Recently Added", "Featured", "Recently Transacted"] }],
     propertyType: { type: mongoose.Schema.Types.ObjectId, ref: "PropertyType", required: true },
 
-    status: { type: String, enum: ["Pending", "Approved", "Rejected"], default: "Pending" },
+    status: { type: String, enum: ["Pending", "Approved", "Rejected" , "Verified"], default: "Pending" },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
