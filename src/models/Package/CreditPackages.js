@@ -6,7 +6,7 @@ const packageSchema = new mongoose.Schema(
         name: { type: String, required: true }, // Example: WhatsApp Credits
         category: {
             type: String,
-            enum: ["whatsapp", "sms", "ai"],
+            enum: ["whatsapp", "sms", "ai", "costemized"],
             required: true,
         },
         description: { type: String },

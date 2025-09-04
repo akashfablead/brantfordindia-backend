@@ -1,5 +1,5 @@
 // controllers/packageController.js
-const Package = require("../../models/Package/CreditPackagescntroller");
+const Package = require("../../models/Package/CreditPackages");
 
 // ✅ Create Package
 const createPackage = async (req, res) => {
@@ -140,7 +140,7 @@ const togglePackageStatus = async (req, res) => {
         const { status } = req.body; // 👈 frontend/Postman will send status here
 
         // Validate input
-        if (!["active", "inactive" , "pending"].includes(status)) {
+        if (!["active", "inactive", "pending"].includes(status)) {
             return res.status(400).json({
                 status: false,
                 message: "Invalid status value. Use 'active' or 'inactive'."

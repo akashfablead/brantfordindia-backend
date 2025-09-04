@@ -17,6 +17,12 @@ const userSchema = new mongoose.Schema({
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },
     createdAt: { type: Date, default: Date.now },
+    credits: {
+        whatsapp: { type: Number, default: 0 },
+        sms: { type: Number, default: 0 },
+        ai: { type: Number, default: 0 },
+        costemized: { type: Number, default: 0 },
+    },
 }, { timestamps: true });
 
 

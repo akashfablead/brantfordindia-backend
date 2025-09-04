@@ -38,11 +38,11 @@ const contactEnquiryRoutes = require("./routes/enquiryroutes/contactEnquiryRoute
 const ownerRoutes = require("./routes/propertyusersroutes/ownerRoutes");
 const brokerRoutes = require("./routes/propertyusersroutes/brokerRoutes");
 const CreditPackagesroutes = require("./routes/Packageroutes/CreditPackagesroutes");
+const paymentRoutes = require("./routes/Packageroutes/paymentRoutes");
 
 // Authentication routes
 app.use("/api/auth", authRoutes);
 app.use("/api/dashboard", dashboardRoutes);
-
 // Master admin routes
 app.use("/api/states", stateRoutes);
 app.use("/api/cities", cityRoutes);
@@ -114,6 +114,9 @@ app.use("/api/owners", ownerRoutes);
 app.use("/api/brokers", brokerRoutes);
 
 app.use("/api/creditpackages", CreditPackagesroutes);
+
+// Payment routes
+app.use("/api/payments", paymentRoutes);
 
 // fake route for testing
 app.get("/", (req, res) => {
