@@ -244,7 +244,7 @@ const getUserPayments = async (req, res) => {
 const getPaymentById = async (req, res) => {
     try {
         const payment = await Payment.findById(req.params.id)
-            .populate("userId", "name email")
+            .populate("userId", "name email credits")
             .populate("packageId", "name category credits price");
         if (!payment) return res.status(404).json({ error: "Payment not found" });
         res.json({ status: true, payment });

@@ -44,6 +44,7 @@ const contactRoutes = require("./routes/contactRoutes");
 // Authentication routes
 app.use("/api/auth", authRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+
 // Master admin routes
 app.use("/api/states", stateRoutes);
 app.use("/api/cities", cityRoutes);
