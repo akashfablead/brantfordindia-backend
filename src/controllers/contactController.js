@@ -1,8 +1,8 @@
 const csv = require("csv-parser");
 const XLSX = require("xlsx");
 const fs = require("fs");
-const Contact = require("../models/contact");
-
+const Contact = require("../models/Contact");
+  
 // 📌 Get all contacts
 const getContacts = async (req, res) => {
     try {
