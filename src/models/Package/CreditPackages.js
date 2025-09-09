@@ -1,9 +1,9 @@
-// models/Package.js
+// models/Package.js - Keep the same, but ensure the model name matches
 const mongoose = require("mongoose");
 
 const packageSchema = new mongoose.Schema(
     {
-        name: { type: String, required: true }, // Example: WhatsApp Credits
+        name: { type: String, required: true },
         category: {
             type: String,
             enum: ["whatsapp", "sms", "ai", "costemized"],
@@ -17,7 +17,7 @@ const packageSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-// ✅ Prevent duplicate (name + category)
 packageSchema.index({ name: 1, category: 1 }, { unique: true });
 
+// ✅ Make sure this matches the ref in Payment schema
 module.exports = mongoose.model("Package", packageSchema);

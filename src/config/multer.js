@@ -29,12 +29,15 @@ const createMulterUpload = (folderName) => {
             "application/pdf",
             "application/msword",
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.ms-excel",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "text/csv",
             "video/mp4",
             "video/mpeg",
             "video/ogg",
             "video/webm",
-            "video/x-msvideo",   // avi
-            "video/quicktime"    // mov
+            "video/x-msvideo",
+            "video/quicktime"
         ];
 
         if (allowedTypes.includes(file.mimetype)) {

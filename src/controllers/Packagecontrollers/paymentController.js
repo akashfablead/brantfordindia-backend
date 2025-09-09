@@ -1,7 +1,8 @@
 const Razorpay = require("razorpay");
 const crypto = require("crypto");
 const User = require("../../models/User");
-const Payment = require("../../models/Package/payment");
+const Payment = require("../../models/Package/payment"); // ✅ sirf ye rakho
+
 const CreditPackages = require("../../models/Package/CreditPackages");
 
 const razorpay = new Razorpay({
@@ -46,53 +47,6 @@ const createOrder = async (req, res) => {
     }
 };
 
-// ✅ Verify Payment
-// const verifyPayment = async (req, res) => {
-//     try {
-//         const { razorpay_order_id, razorpay_payment_id, razorpay_signature, userId, packageId } = req.body;
-
-//         const body = razorpay_order_id + "|" + razorpay_payment_id;
-//         const expectedSignature = crypto
-//             .createHmac("sha256", process.env.RAZORPAY_SECRET)
-//             .update(body.toString())
-//             .digest("hex");
-
-//         if (expectedSignature !== razorpay_signature) {
-//             return res.status(400).json({ success: false, message: "Payment verification failed" });
-//         }
-
-//         const pkg = await CreditPackages.findById(packageId);
-//         if (!pkg) return res.status(404).json({ error: "Package not found" });
-
-//         const payment = new Payment({
-//             userId,
-//             packageId,
-//             amount: pkg.price,
-//             status: "Success",
-//             razorpayId: razorpay_payment_id,
-//             paymentDate: new Date(),
-//         });
-//         await payment.save();
-
-//         // Update User Credits
-//         const user = await User.findById(userId);
-//         if (pkg.category === "whatsapp") {
-//             user.credits.whatsapp += pkg.credits;
-//         } else if (pkg.category === "sms") {
-//             user.credits.sms += pkg.credits;
-//         } else if (pkg.category === "ai") {
-//             user.credits.ai += pkg.credits;
-//         } else if (pkg.category === "costemized") {
-//             user.credits.costemized += pkg.credits;
-//         }
-//         await user.save();
-
-//         res.status(200).json({ success: true, message: "Payment verified and credits updated", payment, user });
-//     } catch (err) {
-//         res.status(500).json({ error: err.message });
-//     }
-// };
-
 const verifyPayment = async (req, res) => {
     try {
         const { razorpay_order_id, razorpay_payment_id, razorpay_signature, userId, packageId } = req.body;
@@ -125,94 +79,138 @@ const verifyPayment = async (req, res) => {
         });
         await payment.save();
 
-        // 🔹 Update User Credits
-        const user = await User.findById(userId);
-        if (pkg.category === "whatsapp") {
-            user.credits.whatsapp += pkg.credits;
-        } else if (pkg.category === "sms") {
-            user.credits.sms += pkg.credits;
-        } else if (pkg.category === "ai") {
-            user.credits.ai += pkg.credits;
-        } else if (pkg.category === "costemized") {
-            user.credits.costemized += pkg.credits;
-        }
-        await user.save();
-
         res.status(200).json({
             success: true,
             message: "Payment verified and credits updated",
             payment,
-            user,
+            note: "Credits pending admin approval"
+
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 };
 
-
 // ✅ Transfer Credits after successful payment (Admin only)
+// ✅ Admin-only: Transfer Credits
 const transferCredits = async (req, res) => {
     try {
-        const { PackageId } = req.body;
+        const { paymentId } = req.body;
 
-        // ✅ Find Payment by its _id
-        // const payment = await Payment.findById(paymentId)
-        //     .populate("userId", "name email")
-        //     .populate("packageId", "name category credits price status");
-
-        const payment = await Payment.findOne({ packageId: PackageId })
-            .populate("userId", "name email")
-            .populate("packageId", "name category credits price status");
-
-        if (!payment) {
-            return res.status(404).json({ error: "Payment not found" });
+        // 🔹 Check admin
+        if (!req.user || req.user.role !== "admin") {
+            return res.status(403).json({ error: "Access denied. Admin only." });
         }
 
-        if (payment.status !== "Success") {
-            return res.status(400).json({ error: "Payment is not successful yet" });
-        }
+        // 🔹 Fetch payment with correct populate
+        const payment = await Payment.findById(paymentId)
+            .populate("userId")
+            .populate("packageId"); // ✅ Fixed: use lowercase to match schema
 
-        if (payment.creditsTransferred) {
-            return res.status(400).json({ error: "Credits already transferred for this payment" });
-        }
+        console.log("Payment found:", payment);
 
-        const pkg = payment.packageId;
-        if (!pkg) {
-            return res.status(404).json({ error: "Package not found for this payment" });
-        }
+        if (!payment) return res.status(404).json({ error: "Payment not found" });
+        if (payment.creditsTransferred) return res.status(400).json({ error: "Credits already transferred" });
 
-        const user = await User.findById(payment.userId);
-        if (!user) {
-            return res.status(404).json({ error: "User not found" });
-        }
+        const user = payment.userId;
+        const pkg = payment.packageId; // ✅ Now this will work correctly
 
-        // ✅ Update User Credits
-        if (pkg.category === "whatsapp") {
-            user.credits.whatsapp += pkg.credits;
-        } else if (pkg.category === "sms") {
-            user.credits.sms += pkg.credits;
-        } else if (pkg.category === "ai") {
-            user.credits.ai += pkg.credits;
-        } else if (pkg.category === "costemized") {
-            user.credits.costemized += pkg.credits;
+        console.log("User:", user);
+        console.log("Package:", pkg);
+
+        if (!user || !pkg) return res.status(400).json({ error: "Invalid payment data" });
+
+        // 🔹 Add credits based on package category
+        switch (pkg.category) {
+            case "whatsapp":
+                user.credits.whatsapp += pkg.credits;
+                break;
+            case "sms":
+                user.credits.sms += pkg.credits;
+                break;
+            case "ai":
+                user.credits.ai += pkg.credits;
+                break;
+            case "costemized":
+                user.credits.costemized += pkg.credits;
+                break;
+            default:
+                return res.status(400).json({ error: "Invalid package category" });
         }
 
         await user.save();
 
-        // ✅ Mark credits transferred
+        // 🔹 Mark payment as transferred
         payment.creditsTransferred = true;
         await payment.save();
 
         res.status(200).json({
             success: true,
-            message: "Credits transferred successfully",
-            user,
+            message: "Credits successfully transferred",
             payment,
+            user
         });
+
     } catch (err) {
+        console.error("Transfer Credits Error:", err);
         res.status(500).json({ error: err.message });
     }
 };
+
+
+// ✅ Get payments by credit transfer status (Admin + filtering)
+const getPaymentsByStatus = async (req, res) => {
+    try {
+        const { status, userId } = req.query;
+
+        // Build filter object
+        let filter = {};
+
+        // Filter by credits transfer status
+        if (status === 'transferred') {
+            filter.creditsTransferred = true;
+        } else if (status === 'pending') {
+            filter.creditsTransferred = { $ne: true }; // false or null/undefined
+        }
+
+        // Optional: Filter by specific user (useful for user-specific queries)
+        if (userId) {
+            filter.userId = userId;
+        }
+
+        // Execute query with populate
+        const payments = await Payment.find(filter)
+            .populate("userId", "name email")
+            .populate("packageId", "name category credits price")
+            .sort({ paymentDate: -1 }); // Latest first
+
+        // Separate counts for better response
+        const transferredCount = await Payment.countDocuments({
+            ...filter,
+            creditsTransferred: true
+        });
+        const pendingCount = await Payment.countDocuments({
+            ...filter,
+            creditsTransferred: { $ne: true }
+        });
+
+        res.json({
+            status: true,
+            message: "Payments fetched successfully",
+            stats: {
+                total: payments.length,
+                transferred: transferredCount,
+                pending: pendingCount
+            },
+            payments: payments
+        });
+
+    } catch (err) {
+        console.error("Get Payments By Status Error:", err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
 
 // ✅ Admin: Get all payments
 const getPaymentHistory = async (req, res) => {
@@ -220,7 +218,12 @@ const getPaymentHistory = async (req, res) => {
         const payments = await Payment.find()
             .populate("userId", "name email")
             .populate("packageId", "name category credits price");
-        res.json({ status: true, payments });
+        res.json({
+            status: true,
+            message: "Payment history fetched successfully",
+            count: payments.length,
+            payments: payments
+        });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -254,6 +257,7 @@ module.exports = {
     createOrder,
     verifyPayment,
     transferCredits,
+    getPaymentsByStatus,
     getPaymentHistory,
     getUserPayments,
     getPaymentById,

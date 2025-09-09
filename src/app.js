@@ -39,6 +39,7 @@ const ownerRoutes = require("./routes/propertyusersroutes/ownerRoutes");
 const brokerRoutes = require("./routes/propertyusersroutes/brokerRoutes");
 const CreditPackagesroutes = require("./routes/Packageroutes/CreditPackagesroutes");
 const paymentRoutes = require("./routes/Packageroutes/paymentRoutes");
+const contactRoutes = require("./routes/contactRoutes");
 
 // Authentication routes
 app.use("/api/auth", authRoutes);
@@ -117,6 +118,9 @@ app.use("/api/creditpackages", CreditPackagesroutes);
 
 // Payment routes
 app.use("/api/payments", paymentRoutes);
+
+// contact us
+app.use("/api/contactus", contactRoutes);
 
 // fake route for testing
 app.get("/", (req, res) => {

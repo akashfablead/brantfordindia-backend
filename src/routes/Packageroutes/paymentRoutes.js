@@ -6,7 +6,8 @@ const {
     getPaymentHistory,
     getUserPayments,
     getPaymentById,
-    transferCredits
+    transferCredits,
+    getPaymentsByStatus
 } = require("../../controllers/Packagecontrollers/paymentController");
 const createMulterUpload = require("../../config/multer");
 const { authenticateToken } = require("../../middleware/authMiddleware");
@@ -21,7 +22,10 @@ router.post("/create-order", authenticateToken, upload.none(), createOrder);
 router.post("/verify", authenticateToken, upload.none(), verifyPayment);
 
 // Admin: Transfer credits
-router.post("/transfer", authenticateToken, upload.none(), transferCredits);
+router.post("/transfer-credits", authenticateToken, upload.none(), transferCredits);
+
+//  Admin: Get payments by status
+router.get("/get-by-status", authenticateToken, upload.none(), getPaymentsByStatus);
 
 // Admin: Get all payments
 router.get("/", authenticateToken, getPaymentHistory);

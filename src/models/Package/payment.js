@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 
 const paymentSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    PackageId: { type: mongoose.Schema.Types.ObjectId, ref: "Package" },
+    packageId: { type: mongoose.Schema.Types.ObjectId, ref: "Package" }, // ✅ Changed from PackageId to packageId
     amount: Number,
     status: String,
     razorpayId: String,
@@ -14,7 +14,3 @@ const paymentSchema = new mongoose.Schema({
 });
 
 module.exports = mongoose.model("Payment", paymentSchema);
-
-
-
-
