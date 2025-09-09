@@ -121,7 +121,7 @@ app.use("/api/creditpackages", CreditPackagesroutes);
 app.use("/api/payments", paymentRoutes);
 
 // contact us
-app.use("/api/contactus", contactRoutes);
+app.use("/api/contact-us", contactRoutes);
 
 // fake route for testing
 app.get("/", (req, res) => {
